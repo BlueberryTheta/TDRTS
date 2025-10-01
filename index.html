@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TDRTS – WW2 CTF (Prototype)</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="app">
+      <div id="left">
+        <canvas id="gameCanvas" width="640" height="640"></canvas>
+      </div>
+      <div id="right">
+        <h1>TDRTS</h1>
+        <div id="status">
+          <div>Current Player: <span id="currentPlayer">1</span></div>
+          <div>Money: $<span id="money">0</span></div>
+          <div>Turn: <span id="turn">1</span></div>
+        </div>
+        <hr />
+        <div id="shop">
+          <h2>Shop</h2>
+          <button data-unit="Infantry">Buy Infantry ($50)</button>
+          <button data-unit="Tank">Buy Tank ($100)</button>
+          <button data-unit="Artillery">Buy Artillery ($120)</button>
+          <div class="hint">After buying, click a valid spawn tile near your base.</div>
+        </div>
+        <hr />
+        <div id="actions">
+          <h2>Actions</h2>
+          <button id="endTurn">End Turn</button>
+          <div class="hint">Select a unit to move/attack. Click an enemy to attack if in range.</div>
+        </div>
+        <hr />
+        <div id="legend">
+          <h2>Legend</h2>
+          <div class="legend-row"><span class="legend-swatch p1"></span> Player 1 Units</div>
+          <div class="legend-row"><span class="legend-swatch p2"></span> Player 2 Units</div>
+          <div class="legend-row"><span class="legend-swatch base"></span> Base (Flag starts here)</div>
+          <div class="legend-row"><span class="legend-swatch flag"></span> Flag</div>
+          <div class="legend-row"><span class="legend-swatch move"></span> Move Range</div>
+          <div class="legend-row"><span class="legend-swatch atk"></span> Attack Range</div>
+        </div>
+        <hr />
+        <div id="help">
+          <h2>How To Play</h2>
+          <ul>
+            <li>Two players take turns on the same device.</li>
+            <li>Earn $50 each turn. Buy units and spawn near your base.</li>
+            <li>Select your unit, click a highlighted tile to move.</li>
+            <li>Click an enemy in range to attack.</li>
+            <li>Capture the enemy flag by moving onto it, then bring it back to your base.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="src/main.js"></script>
+  </body>
+  </html>
+
