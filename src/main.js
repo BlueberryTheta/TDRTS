@@ -5,11 +5,14 @@ import { UNIT_TYPES } from './units.js';
 import { runAiTurn } from './ai.js';
 
 const TILE_SIZE = 64;
-const GRID_W = 10;
-const GRID_H = 10;
+const GRID_W = 15;
+const GRID_H = 15;
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+// Ensure canvas matches grid size
+canvas.width = GRID_W * TILE_SIZE;
+canvas.height = GRID_H * TILE_SIZE;
 
 const ui = {
   currentPlayer: document.getElementById('currentPlayer'),
@@ -21,6 +24,10 @@ const ui = {
 
 const game = new GameState(GRID_W, GRID_H);
 const renderer = new Renderer(ctx, TILE_SIZE, game);
+// Load background map image (optional)
+const bg = new Image();
+bg.src = 'assets/map.svg';
+bg.onload = () => { renderer.bgImage = bg; };
 
 function updateUI() {
   ui.currentPlayer.textContent = String(game.currentPlayer + 1);

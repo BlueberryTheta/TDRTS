@@ -3,16 +3,26 @@ export class Renderer {
     this.ctx = ctx;
     this.T = tileSize;
     this.game = game;
+    this.bgImage = null; // optional background image
   }
 
-  drawGrid() {
+  drawBackground() {
     const { ctx, T } = this;
     const W = this.game.w * T;
     const H = this.game.h * T;
     ctx.clearRect(0, 0, W, H);
-    // Background
-    ctx.fillStyle = '#0d1117';
-    ctx.fillRect(0, 0, W, H);
+    if (this.bgImage) {
+      ctx.drawImage(this.bgImage, 0, 0, ctx.canvas.width, ctx.canvas.height);
+    } else {
+      ctx.fillStyle = '#0d1117';
+      ctx.fillRect(0, 0, W, H);
+    }
+  }
+
+  drawGridLines() {
+    const { ctx, T } = this;
+    const W = this.game.w * T;
+    const H = this.game.h * T;
     // Grid lines
     ctx.strokeStyle = '#30363d';
     ctx.lineWidth = 1;
@@ -112,10 +122,10 @@ export class Renderer {
   }
 
   draw() {
-    this.drawGrid();
+    this.drawBackground();
+    this.drawGridLines();
     this.drawRanges();
     this.drawBasesAndFlags();
     this.drawUnits();
   }
 }
-
