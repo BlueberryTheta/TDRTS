@@ -24,7 +24,7 @@ export class Renderer {
     const W = this.game.w * T;
     const H = this.game.h * T;
     // Grid lines
-    ctx.strokeStyle = '#30363d';
+    ctx.strokeStyle = 'rgba(18, 61, 18, 0.4)'; // translucent dark green
     ctx.lineWidth = 1;
     for (let x = 0; x <= this.game.w; x++) {
       ctx.beginPath();

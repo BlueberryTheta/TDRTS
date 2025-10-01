@@ -26,8 +26,13 @@ const game = new GameState(GRID_W, GRID_H);
 const renderer = new Renderer(ctx, TILE_SIZE, game);
 // Load background map image (optional)
 const bg = new Image();
-bg.src = 'assets/map.svg';
 bg.onload = () => { renderer.bgImage = bg; };
+bg.onerror = () => {
+  const fallback = new Image();
+  fallback.src = 'assets/map.svg';
+  fallback.onload = () => { renderer.bgImage = fallback; };
+};
+bg.src = 'assets/background.png';
 
 function updateUI() {
   ui.currentPlayer.textContent = String(game.currentPlayer + 1);
