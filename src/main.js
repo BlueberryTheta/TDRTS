@@ -24,15 +24,31 @@ const ui = {
 
 const game = new GameState(GRID_W, GRID_H);
 const renderer = new Renderer(ctx, TILE_SIZE, game);
-// Load background map image (optional)
-const bg = new Image();
-bg.onload = () => { renderer.bgImage = bg; };
-bg.onerror = () => {
-  const fallback = new Image();
-  fallback.src = 'assets/map.svg';
-  fallback.onload = () => { renderer.bgImage = fallback; };
-};
-bg.src = 'assets/background.png';
+// Load background map image (optional), try multiple filenames
+function loadBackgroundSequential(paths, fallbackPath) {
+  if (!paths.length) {
+    if (fallbackPath) {
+      const fb = new Image();
+      fb.onload = () => { renderer.bgImage = fb; };
+      fb.src = fallbackPath;
+    }
+    return;
+  }
+  const [head, ...rest] = paths;
+  const img = new Image();
+  img.onload = () => { renderer.bgImage = img; };
+  img.onerror = () => loadBackgroundSequential(rest, fallbackPath);
+  img.src = head;
+}
+
+loadBackgroundSequential([
+  'assets/background.png',
+  'assets/background.jpg',
+  'assets/background.jpeg',
+  'background.png',
+  'background.jpg',
+  'background.jpeg',
+], 'assets/map.svg');
 
 function updateUI() {
   ui.currentPlayer.textContent = String(game.currentPlayer + 1);
