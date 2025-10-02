@@ -48,6 +48,18 @@
           <div class="hint">Select a unit to move/attack. Click an enemy to attack if in range.</div>
         </div>
         <hr />
+        <div id="unitPanel">
+          <h2>Selected Unit</h2>
+          <div id="unitNone" class="hint">No unit selected.</div>
+          <div id="unitInfo" style="display:none">
+            <div><strong id="unitName"></strong> <span id="unitOwner" class="hint"></span></div>
+            <div id="unitHP">HP: -</div>
+            <div id="unitStats">ATK: -, DEF: -, MOVE: -, RNG: -</div>
+            <div id="unitXP">XP: 0 (<span id="unitRank">Private</span>)</div>
+            <div id="unitAbilities">Abilities: -</div>
+          </div>
+        </div>
+        <hr />
         <div id="legend">
           <h2>Legend</h2>
           <div class="legend-row"><span class="legend-swatch p1"></span> Player 1 Units</div>

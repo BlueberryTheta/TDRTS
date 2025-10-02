@@ -25,6 +25,7 @@ export function makeUnit(id, unitType, player, x, y) {
     moved: false,
     acted: false,
     hitUntil: 0,
+    xp: 0,
     color: player === 0 ? '#58a6ff' : '#ffa657',
   };
 }
@@ -48,4 +49,23 @@ export function makeFort(id, fortType, player, x, y) {
     range: fortType.range ?? 0,
     color: fortType.color,
   };
+}
+
+// Simple abilities metadata for display only
+export const UNIT_ABILITIES = {
+  Infantry: ['Generalist'],
+  Tank: ['Armored'],
+  Artillery: ['Long Range'],
+  AntiTankGun: ['Anti-Armor'],
+  Engineer: ['Build Fortifications'],
+  Officer: ['Leadership'],
+  Medic: ['Field Medic'],
+  Scout: ['Recon'],
+  MechanizedInfantry: ['Transported'],
+};
+
+export function rankForXP(xp) {
+  const lvl = xp >= 6 ? 2 : xp >= 3 ? 1 : 0;
+  const label = lvl === 2 ? 'Sergeant' : lvl === 1 ? 'Corporal' : 'Private';
+  return { level: lvl, label };
 }

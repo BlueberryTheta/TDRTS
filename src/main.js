@@ -1,7 +1,7 @@
 import { GameState } from './state.js';
 import { Renderer } from './render.js';
 import { attachInput } from './input.js';
-import { UNIT_TYPES, FORT_TYPES } from './units.js';
+import { UNIT_TYPES, FORT_TYPES, UNIT_ABILITIES, rankForXP } from './units.js';
 import { AssetStore } from './assets.js';
 import { runAiTurn } from './ai.js';
 
@@ -79,6 +79,36 @@ function updateUI() {
   ui.currentPlayer.textContent = String(game.currentPlayer + 1);
   ui.money.textContent = String(game.money[game.currentPlayer]);
   ui.turn.textContent = String(game.turn);
+  // Selected unit panel
+  const info = document.getElementById('unitInfo');
+  const none = document.getElementById('unitNone');
+  const u = game.getUnitById(game.selectedId);
+  if (!u) {
+    if (info) info.style.display = 'none';
+    if (none) none.style.display = '';
+  } else {
+    if (none) none.style.display = 'none';
+    if (info) info.style.display = '';
+    const nameEl = document.getElementById('unitName');
+    const ownerEl = document.getElementById('unitOwner');
+    const hpEl = document.getElementById('unitHP');
+    const statsEl = document.getElementById('unitStats');
+    const xpEl = document.getElementById('unitXP');
+    const rankEl = document.getElementById('unitRank');
+    const abilEl = document.getElementById('unitAbilities');
+    if (nameEl) nameEl.textContent = u.type;
+    if (ownerEl) ownerEl.textContent = `(P${u.player + 1})`;
+    if (hpEl) hpEl.textContent = `HP: ${Math.max(0, u.hp)} / ${u.maxHp}`;
+    const lvl = rankForXP(u.xp || 0).level;
+    const atkEff = (u.atk || 0) + lvl;
+    const defEff = (u.def || 0) + lvl;
+    if (statsEl) statsEl.textContent = `ATK: ${atkEff}, DEF: ${defEff}, MOVE: ${u.move}, RNG: ${u.range}`;
+    const rk = rankForXP(u.xp || 0);
+    if (xpEl) xpEl.firstChild ? xpEl.firstChild.nodeValue = `XP: ${u.xp || 0} (` : (xpEl.textContent = `XP: ${u.xp || 0} (`);
+    if (rankEl) rankEl.textContent = rk.label;
+    const ab = UNIT_ABILITIES[u.type] || [];
+    if (abilEl) abilEl.textContent = `Abilities: ${ab.length ? ab.join(', ') : '-'}`;
+  }
 }
 
 function animate() {

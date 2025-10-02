@@ -1,4 +1,4 @@
-import { UNIT_TYPES, makeUnit, FORT_TYPES, makeFort } from './units.js';
+import { UNIT_TYPES, makeUnit, FORT_TYPES, makeFort, rankForXP } from './units.js';
 
 export class GameState {
   constructor(width, height) {
@@ -273,7 +273,8 @@ export class GameState {
     const { suppressCounter = false } = opts;
     if (attacker.acted) return false;
     // Compute damage with bunker cover if target is a unit standing on friendly bunker
-    let dmg = attacker.atk;
+    const atkBonus = attacker.fort ? 0 : rankForXP(attacker.xp || 0).level; // forts don't level
+    let dmg = (attacker.atk || 0) + atkBonus;
     if (!target.fort) {
       if (this.isFriendlyBunkerAt(target.x, target.y, target.player)) {
         dmg = Math.max(1, dmg - 2); // bunker cover reduces incoming damage by 2
@@ -284,6 +285,8 @@ export class GameState {
       try { target.hitUntil = (performance && performance.now ? performance.now() : Date.now()) + 200; } catch (_) { target.hitUntil = Date.now() + 200; }
     }
     attacker.acted = true;
+    // XP for attacker if it's a unit
+    if (!attacker.fort) attacker.xp = (attacker.xp || 0) + 1;
 
     // If target carried our flag, drop it on target tile
     const targetEnemyFlag = this.flags[(target.player + 1) % 2];
@@ -303,7 +306,8 @@ export class GameState {
     } else {
       // Defender counterattacks if still alive (units only)
       if (!suppressCounter && !target.fort) {
-        const counter = Math.max(0, target.def || 0);
+        const defBonus = rankForXP(target.xp || 0).level;
+        const counter = Math.max(0, (target.def || 0) + defBonus);
         if (counter > 0) {
           attacker.hp -= counter;
           try { attacker.hitUntil = (performance && performance.now ? performance.now() : Date.now()) + 200; } catch (_) { attacker.hitUntil = Date.now() + 200; }
@@ -317,6 +321,8 @@ export class GameState {
             if (ai >= 0) this.units.splice(ai, 1);
           }
         }
+        // XP for defender for engaging in combat and surviving to counter
+        if (target.hp > 0) target.xp = (target.xp || 0) + 1;
       }
     }
 
