@@ -100,8 +100,9 @@ function updateUI() {
     if (ownerEl) ownerEl.textContent = `(P${u.player + 1})`;
     if (hpEl) hpEl.textContent = `HP: ${Math.max(0, u.hp)} / ${u.maxHp}`;
     const lvl = rankForXP(u.xp || 0).level;
-    const atkEff = (u.atk || 0) + lvl;
-    const defEff = (u.def || 0) + lvl;
+    const aura = game.getOfficerBonus(u);
+    const atkEff = (u.atk || 0) + lvl + aura;
+    const defEff = (u.def || 0) + lvl + aura;
     if (statsEl) statsEl.textContent = `ATK: ${atkEff}, DEF: ${defEff}, MOVE: ${u.move}, RNG: ${u.range}`;
     const rk = rankForXP(u.xp || 0);
     if (xpEl) xpEl.firstChild ? xpEl.firstChild.nodeValue = `XP: ${u.xp || 0} (` : (xpEl.textContent = `XP: ${u.xp || 0} (`);

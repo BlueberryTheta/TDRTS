@@ -136,6 +136,20 @@ export class Renderer {
     const { ctx, T } = this;
     const sel = this.game.getUnitById(this.game.selectedId);
     if (!sel) return;
+    // Spotted overlay for Artillery extended range
+    if (sel.type === 'Artillery') {
+      const spotted = this.game.getArtillerySpottedTiles(sel);
+      if (spotted && spotted.size) {
+        ctx.fillStyle = 'rgba(210,153,34,0.14)';
+        ctx.strokeStyle = 'rgba(210,153,34,0.5)';
+        ctx.lineWidth = 1;
+        for (const key of spotted) {
+          const [x, y] = key.split(',').map(Number);
+          ctx.fillRect(x * T + 4, y * T + 4, T - 8, T - 8);
+          ctx.strokeRect(x * T + 4, y * T + 4, T - 8, T - 8);
+        }
+      }
+    }
     if (!sel.moved) {
       const moves = this.game.getMoveRange(sel);
       ctx.fillStyle = 'rgba(88,166,255,0.25)';
@@ -227,5 +241,32 @@ export class Renderer {
     this.drawRanges();
     this.drawBasesAndFlags();
     this.drawUnits();
+    this.drawEffects();
+  }
+
+  drawEffects() {
+    const { ctx, T } = this;
+    const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    // Keep only live effects
+    this.game.effects = this.game.effects.filter(e => e.until > now);
+    for (const e of this.game.effects) {
+      if (e.type === 'explosion') {
+        const prog = 1 - Math.max(0, e.until - now) / Math.max(1, e.until - e.start);
+        const cx = e.x * T + T / 2;
+        const cy = e.y * T + T / 2;
+        const r1 = 6 + prog * 10;
+        const r2 = 2 + prog * 20;
+        // Outer smoke ring
+        ctx.beginPath();
+        ctx.arc(cx, cy, r2, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(125,125,125,${0.25 * (1 - prog)})`;
+        ctx.fill();
+        // Core flash
+        ctx.beginPath();
+        ctx.arc(cx, cy, r1, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255,140,0,${0.5 * (1 - prog)})`;
+        ctx.fill();
+      }
+    }
   }
 }

@@ -30,6 +30,11 @@ export class GameState {
     this.spawnQueue = null; // { unitType }
     // Engineer build queue: build a fort adjacent to selected engineer
     this.buildQueue = null; // { fortType, engineerId }
+    // Transient visual effects
+    this.effects = [];
+    // Aura/heal parameters
+    this.auraRadius = 1; // Chebyshev distance
+    this.medicHeal = 2; // HP per end of turn
   }
 
   nextId() { return this._unitId++; }
@@ -207,6 +212,8 @@ export class GameState {
     });
     // Fortifications end-of-turn effects (pillbox auto-fire)
     this.pillboxAutoFire();
+    // Medics heal nearby friendlies
+    this.medicAutoHeal();
     // Income
     this.money[(this.currentPlayer + 1) % 2] += this.income;
     // Next player
@@ -229,6 +236,58 @@ export class GameState {
 
   getFortAt(x, y) {
     return this.forts.find(f => f.x === x && f.y === y) || null;
+  }
+
+  // Spotting: check if any friendly Scout is within N (Manhattan) tiles of a target tile
+  hasFriendlyScoutNearTile(x, y, player, radius = 5) {
+    for (const u of this.units) {
+      if (u.player !== player) continue;
+      if (u.type !== 'Scout') continue;
+      const d = Math.abs(u.x - x) + Math.abs(u.y - y);
+      if (d <= radius) return true;
+    }
+    return false;
+  }
+
+  getArtillerySpottedTiles(unit) {
+    if (unit.type !== 'Artillery') return new Set();
+    const tiles = new Set();
+    const baseRange = unit.range;
+    const extendedRange = 10;
+    const maxLoop = extendedRange;
+    for (let dx = -maxLoop; dx <= maxLoop; dx++) {
+      for (let dy = -maxLoop; dy <= maxLoop; dy++) {
+        const d = Math.abs(dx) + Math.abs(dy);
+        if (d === 0) continue;
+        const x = unit.x + dx, y = unit.y + dy;
+        if (!this.isInside(x, y)) continue;
+        if (d > baseRange && d <= extendedRange && this.hasFriendlyScoutNearTile(x, y, unit.player, 5)) {
+          tiles.add(`${x},${y}`);
+        }
+      }
+    }
+    return tiles;
+  }
+
+  // Spotting: check if any friendly Scout is within N (Manhattan) tiles of a target tile
+  hasFriendlyScoutNearTile(x, y, player, radius = 5) {
+    for (const u of this.units) {
+      if (u.player !== player) continue;
+      if (u.type !== 'Scout') continue;
+      const d = Math.abs(u.x - x) + Math.abs(u.y - y);
+      if (d <= radius) return true;
+    }
+    return false;
+  }
+
+  // --- Officer aura helpers ---
+  hasFriendlyOfficerNearby(unit) {
+    const rad = this.auraRadius;
+    return this.units.some(o => o.type === 'Officer' && o.player === unit.player && Math.max(Math.abs(o.x - unit.x), Math.abs(o.y - unit.y)) <= rad);
+  }
+
+  getOfficerBonus(unit) {
+    return this.hasFriendlyOfficerNearby(unit) ? 1 : 0;
   }
 
   moveUnitTo(unit, x, y) {
@@ -273,7 +332,7 @@ export class GameState {
     const { suppressCounter = false } = opts;
     if (attacker.acted) return false;
     // Compute damage with bunker cover if target is a unit standing on friendly bunker
-    const atkBonus = attacker.fort ? 0 : rankForXP(attacker.xp || 0).level; // forts don't level
+    const atkBonus = attacker.fort ? 0 : (rankForXP(attacker.xp || 0).level + this.getOfficerBonus(attacker)); // forts don't level
     let dmg = (attacker.atk || 0) + atkBonus;
     if (!target.fort) {
       if (this.isFriendlyBunkerAt(target.x, target.y, target.player)) {
@@ -287,6 +346,15 @@ export class GameState {
     attacker.acted = true;
     // XP for attacker if it's a unit
     if (!attacker.fort) attacker.xp = (attacker.xp || 0) + 1;
+
+    // Explosion effect for long-range spotted artillery fire
+    if (!attacker.fort && attacker.type === 'Artillery') {
+      const dist = Math.abs(attacker.x - target.x) + Math.abs(attacker.y - target.y);
+      const baseR = attacker.range;
+      if (dist > baseR && dist <= 10 && this.hasFriendlyScoutNearTile(target.x, target.y, attacker.player, 5)) {
+        this.spawnExplosion(target.x, target.y, 400);
+      }
+    }
 
     // If target carried our flag, drop it on target tile
     const targetEnemyFlag = this.flags[(target.player + 1) % 2];
@@ -306,7 +374,7 @@ export class GameState {
     } else {
       // Defender counterattacks if still alive (units only)
       if (!suppressCounter && !target.fort) {
-        const defBonus = rankForXP(target.xp || 0).level;
+        const defBonus = rankForXP(target.xp || 0).level + this.getOfficerBonus(target);
         const counter = Math.max(0, (target.def || 0) + defBonus);
         if (counter > 0) {
           attacker.hp -= counter;
@@ -331,6 +399,11 @@ export class GameState {
     return true;
   }
 
+  spawnExplosion(x, y, durationMs = 350) {
+    const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    this.effects.push({ type: 'explosion', x, y, start: now, until: now + durationMs });
+  }
+
   // Auto-fire from pillboxes at end of turn: damages all enemy units in range
   pillboxAutoFire() {
     const pillboxes = this.forts.filter(f => f.type === 'Pillbox' && (f.atk || 0) > 0);
@@ -346,6 +419,22 @@ export class GameState {
           if (atkVal <= 0) continue;
           const temp = { ...f, atk: atkVal, acted: false };
           this.attack(temp, u, { suppressCounter: true });
+        }
+      }
+    }
+  }
+
+  // Medics heal adjacent friendly units (Chebyshev radius = this.auraRadius)
+  medicAutoHeal() {
+    const medics = this.units.filter(u => u.type === 'Medic');
+    for (const m of medics) {
+      for (const u of this.units) {
+        if (u.player !== m.player) continue;
+        if (u.id === m.id) continue; // optional: skip self-heal; remove to allow
+        if (Math.max(Math.abs(u.x - m.x), Math.abs(u.y - m.y)) <= this.auraRadius) {
+          if (u.hp > 0 && u.hp < u.maxHp) {
+            u.hp = Math.min(u.maxHp, u.hp + this.medicHeal);
+          }
         }
       }
     }
@@ -385,14 +474,26 @@ export class GameState {
 
   getAttackableTiles(unit) {
     const tiles = new Set();
-    const maxD = unit.range;
-    for (let dx = -maxD; dx <= maxD; dx++) {
-      for (let dy = -maxD; dy <= maxD; dy++) {
+    // Base attack range
+    const baseRange = unit.range;
+    // For artillery, allow extended range if tile is spotted by a friendly Scout
+    const extendedRange = unit.type === 'Artillery' ? 10 : baseRange;
+    const maxLoop = Math.max(baseRange, extendedRange);
+    for (let dx = -maxLoop; dx <= maxLoop; dx++) {
+      for (let dy = -maxLoop; dy <= maxLoop; dy++) {
         const d = Math.abs(dx) + Math.abs(dy);
-        if (d > maxD || d === 0) continue;
+        if (d === 0 || d > maxLoop) continue;
         const x = unit.x + dx, y = unit.y + dy;
         if (!this.isInside(x, y)) continue;
-        tiles.add(`${x},${y}`);
+        // Within base range is always valid
+        if (d <= baseRange) {
+          tiles.add(`${x},${y}`);
+        } else if (unit.type === 'Artillery') {
+          // Within extended range only if a friendly Scout is within 5 tiles of the target tile
+          if (d <= extendedRange && this.hasFriendlyScoutNearTile(x, y, unit.player, 5)) {
+            tiles.add(`${x},${y}`);
+          }
+        }
       }
     }
     return tiles;
