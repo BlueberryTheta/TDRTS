@@ -6,8 +6,8 @@ import { AssetStore } from './assets.js';
 import { runAiTurn } from './ai.js';
 
 const TILE_SIZE = 64;
-const GRID_W = 15;
-const GRID_H = 15;
+const GRID_W = 12;
+const GRID_H = 12;
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -73,7 +73,13 @@ const FORT_TO_FILE = {
   BarbedWire: 'assets/Barbed Wire.png',
 };
 
-assets.load({ ...UNIT_TO_FILE, ...FORT_TO_FILE });
+const MISC_ASSETS = {
+  Base: 'assets/Base.png',
+  BlueFlag: 'assets/Blue Flag.png',
+  OrangeFlag: 'assets/Orange Flag.png',
+};
+
+assets.load({ ...UNIT_TO_FILE, ...FORT_TO_FILE, ...MISC_ASSETS });
 
 // Decorate shop buttons with thumbnails
 function decorateShop() {

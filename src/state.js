@@ -9,8 +9,8 @@ export class GameState {
     this.income = 50;
     this.money = [100, 100];
 
-    // Bases at opposite corners; flags start on bases
-    this.bases = [ { x: 0, y: 0 }, { x: this.w - 1, y: this.h - 1 } ];
+    // Bases near opposite corners, shifted diagonally 1 toward center; flags start on bases
+    this.bases = [ { x: 1, y: 1 }, { x: this.w - 2, y: this.h - 2 } ];
     this.flags = [
       { atBase: true, carriedBy: null, x: this.bases[0].x, y: this.bases[0].y },
       { atBase: true, carriedBy: null, x: this.bases[1].x, y: this.bases[1].y },

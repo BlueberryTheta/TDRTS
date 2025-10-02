@@ -72,8 +72,13 @@ export class Renderer {
     // Bases
     for (let i = 0; i < 2; i++) {
       const base = this.game.bases[i];
-      ctx.fillStyle = '#8957e5';
-      ctx.fillRect(base.x * T + 4, base.y * T + 4, T - 8, T - 8);
+      const img = this.assets && this.assets.get('Base');
+      if (img) {
+        ctx.drawImage(img, base.x * T + 2, base.y * T + 2, T - 4, T - 4);
+      } else {
+        ctx.fillStyle = '#8957e5';
+        ctx.fillRect(base.x * T + 4, base.y * T + 4, T - 8, T - 8);
+      }
     }
     // Flags
     for (let i = 0; i < 2; i++) {
@@ -84,7 +89,7 @@ export class Renderer {
       // Show enemy flag only if visible to current player; always show your own flag
       const current = this.game.currentPlayer;
       if (i === current || this.game.isTileVisibleTo(current, x, y)) {
-        this.drawFlag(x, y);
+        this.drawFlag(x, y, i);
       }
     }
   }
@@ -130,13 +135,19 @@ export class Renderer {
     }
   }
 
-  drawFlag(x, y) {
+  drawFlag(x, y, ownerIndex) {
     const { ctx, T } = this;
-    ctx.save();
-    ctx.translate(x * T, y * T);
-    ctx.fillStyle = '#d29922';
-    ctx.fillRect(12, 12, T - 24, T - 24);
-    ctx.restore();
+    const key = ownerIndex === 0 ? 'BlueFlag' : 'OrangeFlag';
+    const img = this.assets && this.assets.get(key);
+    if (img) {
+      ctx.drawImage(img, x * T + 10, y * T + 10, T - 20, T - 20);
+    } else {
+      ctx.save();
+      ctx.translate(x * T, y * T);
+      ctx.fillStyle = '#d29922';
+      ctx.fillRect(12, 12, T - 24, T - 24);
+      ctx.restore();
+    }
   }
 
   drawRanges() {
