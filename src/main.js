@@ -75,6 +75,23 @@ const FORT_TO_FILE = {
 
 assets.load({ ...UNIT_TO_FILE, ...FORT_TO_FILE });
 
+// Decorate shop buttons with thumbnails
+function decorateShop() {
+  const map = { ...UNIT_TO_FILE, ...FORT_TO_FILE };
+  const btns = document.querySelectorAll('#shop .shop-item');
+  btns.forEach((btn) => {
+    const unitKey = btn.getAttribute('data-unit');
+    const fortKey = btn.getAttribute('data-fort');
+    const key = unitKey || fortKey;
+    const path = map[key];
+    const thumb = btn.querySelector('.thumb');
+    if (thumb && path) {
+      thumb.style.backgroundImage = `url('${path}')`;
+    }
+  });
+}
+decorateShop();
+
 function updateUI() {
   ui.currentPlayer.textContent = String(game.currentPlayer + 1);
   ui.money.textContent = String(game.money[game.currentPlayer]);
@@ -99,6 +116,9 @@ function updateUI() {
     if (nameEl) nameEl.textContent = u.type;
     if (ownerEl) ownerEl.textContent = `(P${u.player + 1})`;
     if (hpEl) hpEl.textContent = `HP: ${Math.max(0, u.hp)} / ${u.maxHp}`;
+    const hpPct = Math.max(0, Math.min(1, (u.hp || 0) / (u.maxHp || 1)));
+    const bar = document.querySelector('#unitHpBar .bar-fill');
+    if (bar) bar.style.width = `${hpPct * 100}%`;
     const lvl = rankForXP(u.xp || 0).level;
     const aura = game.getOfficerBonus(u);
     const atkEff = (u.atk || 0) + lvl + aura;
@@ -107,8 +127,16 @@ function updateUI() {
     const rk = rankForXP(u.xp || 0);
     if (xpEl) xpEl.firstChild ? xpEl.firstChild.nodeValue = `XP: ${u.xp || 0} (` : (xpEl.textContent = `XP: ${u.xp || 0} (`);
     if (rankEl) rankEl.textContent = rk.label;
+    const rankBadge = document.getElementById('unitRankBadge');
+    if (rankBadge) rankBadge.textContent = rk.label;
     const ab = UNIT_ABILITIES[u.type] || [];
-    if (abilEl) abilEl.textContent = `Abilities: ${ab.length ? ab.join(', ') : '-'}`;
+    if (abilEl) {
+      if (ab.length) {
+        abilEl.innerHTML = 'Abilities: ' + ab.map(a => `<span class="ability">${a}</span>`).join('');
+      } else {
+        abilEl.textContent = 'Abilities: -';
+      }
+    }
   }
 }
 

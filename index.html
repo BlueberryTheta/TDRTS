@@ -19,42 +19,42 @@
           <div>Turn: <span id="turn">1</span></div>
         </div>
         <hr />
-        <div id="shop">
-          <h2>Shop</h2>
-          <div>
-            <strong>Units</strong>
+        <div id="shop" class="panel">
+          <h2 style="margin-top:0">Requisitions</h2>
+          <div class="shop-section-title">Units</div>
+          <div class="shop-grid">
+            <button class="shop-item" data-unit="Infantry"><span class="thumb"></span><span class="label">Infantry</span><span class="price">$50</span></button>
+            <button class="shop-item" data-unit="Tank"><span class="thumb"></span><span class="label">Tank</span><span class="price">$100</span></button>
+            <button class="shop-item" data-unit="Artillery"><span class="thumb"></span><span class="label">Artillery</span><span class="price">$120</span></button>
+            <button class="shop-item" data-unit="AntiTankGun"><span class="thumb"></span><span class="label">Anti-Tank Gun</span><span class="price">$110</span></button>
+            <button class="shop-item" data-unit="Engineer"><span class="thumb"></span><span class="label">Engineer</span><span class="price">$60</span></button>
+            <button class="shop-item" data-unit="Officer"><span class="thumb"></span><span class="label">Officer</span><span class="price">$80</span></button>
+            <button class="shop-item" data-unit="Medic"><span class="thumb"></span><span class="label">Medic</span><span class="price">$70</span></button>
+            <button class="shop-item" data-unit="Scout"><span class="thumb"></span><span class="label">Scout</span><span class="price">$60</span></button>
+            <button class="shop-item" data-unit="MechanizedInfantry"><span class="thumb"></span><span class="label">Mechanized Infantry</span><span class="price">$120</span></button>
           </div>
-          <button data-unit="Infantry">Infantry ($50)</button>
-          <button data-unit="Tank">Tank ($100)</button>
-          <button data-unit="Artillery">Artillery ($120)</button>
-          <button data-unit="AntiTankGun">Anti-Tank Gun ($110)</button>
-          <button data-unit="Engineer">Engineer ($60)</button>
-          <button data-unit="Officer">Officer ($80)</button>
-          <button data-unit="Medic">Medic ($70)</button>
-          <button data-unit="Scout">Scout ($60)</button>
-          <button data-unit="MechanizedInfantry">Mechanized Infantry ($120)</button>
-          <div style="margin-top:8px">
-            <strong>Fortifications</strong>
+          <div class="shop-section-title" style="margin-top:10px">Fortifications</div>
+          <div class="shop-grid">
+            <button class="shop-item" data-fort="Pillbox"><span class="thumb"></span><span class="label">Pillbox</span><span class="price">$80</span></button>
+            <button class="shop-item" data-fort="Bunker"><span class="thumb"></span><span class="label">Bunker</span><span class="price">$120</span></button>
+            <button class="shop-item" data-fort="BarbedWire"><span class="thumb"></span><span class="label">Barbed Wire</span><span class="price">$30</span></button>
           </div>
-          <button data-fort="Pillbox">Pillbox ($80)</button>
-          <button data-fort="Bunker">Bunker ($120)</button>
-          <button data-fort="BarbedWire">Barbed Wire ($30)</button>
-          <div class="hint">After buying, click a highlighted spawn tile near your base.</div>
+          <div class="hint">Buy and place near base, or Engineers can build adjacent.</div>
         </div>
         <hr />
-        <div id="actions">
+        <div id="actions" class="panel">
           <h2>Actions</h2>
           <button id="endTurn">End Turn</button>
           <div class="hint">Select a unit to move/attack. Click an enemy to attack if in range.</div>
         </div>
         <hr />
-        <div id="unitPanel">
-          <h2>Selected Unit</h2>
+        <div id="unitPanel" class="panel">
+          <h2 style="margin-top:0">Selected Unit</h2>
           <div id="unitNone" class="hint">No unit selected.</div>
           <div id="unitInfo" style="display:none">
-            <div><strong id="unitName"></strong> <span id="unitOwner" class="hint"></span></div>
-            <div id="unitHP">HP: -</div>
-            <div id="unitStats">ATK: -, DEF: -, MOVE: -, RNG: -</div>
+            <div class="stat-row"><strong id="unitName"></strong> <span id="unitOwner" class="hint"></span> <span id="unitRankBadge" class="badge" style="margin-left:auto">Private</span></div>
+            <div class="stat-row"><span style="width:40px">HP</span><div id="unitHpBar" class="bar"><div class="bar-fill" style="width:0%"></div></div><span id="unitHP" class="hint"></span></div>
+            <div id="unitStats">ATK: -, DEF: -, MOVE: -, RNG: -, SIGHT: -</div>
             <div id="unitXP">XP: 0 (<span id="unitRank">Private</span>)</div>
             <div id="unitAbilities">Abilities: -</div>
           </div>
