@@ -1,12 +1,17 @@
 export function attachInput(canvas, tileSize, game) {
-  canvas.addEventListener('click', (e) => {
+  const computeTile = (clientX, clientY) => {
+    const rect = canvas.getBoundingClientRect();
+    const cx = clientX - rect.left;
+    const cy = clientY - rect.top;
+    const tx = Math.floor(cx / (rect.width / game.w));
+    const ty = Math.floor(cy / (rect.height / game.h));
+    return { x: tx, y: ty };
+  };
+
+  const onPoint = (clientX, clientY) => {
     // Recompute visibility for accurate fog interactions
     if (typeof game.recomputeVisibility === 'function') game.recomputeVisibility();
-    const rect = canvas.getBoundingClientRect();
-    const cx = e.clientX - rect.left;
-    const cy = e.clientY - rect.top;
-    const x = Math.floor(cx / tileSize);
-    const y = Math.floor(cy / tileSize);
+    const { x, y } = computeTile(clientX, clientY);
 
     // If an engineer build is queued, try to build here first
     if (game.buildQueue) {
@@ -61,5 +66,16 @@ export function attachInput(canvas, tileSize, game) {
         return;
       }
     }
+  };
+
+  canvas.addEventListener('click', (e) => {
+    onPoint(e.clientX, e.clientY);
   });
+
+  canvas.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'touch' || e.pointerType === 'pen') {
+      e.preventDefault();
+      onPoint(e.clientX, e.clientY);
+    }
+  }, { passive: false });
 }

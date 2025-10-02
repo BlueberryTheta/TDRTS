@@ -81,3 +81,15 @@ li { margin: 4px 0; }
 /* Action button polish */
 #endTurn { background: #b08d57; border-color: #8b6b3b; }
 #endTurn:hover { filter: brightness(1.07); }
+
+/* Mobile responsive layout */
+@media (max-width: 900px) {
+  #app { flex-direction: column; }
+  #left { padding: 8px; }
+  #right { padding: 8px 10px; }
+  #gameCanvas { width: 100%; height: auto; border-width: 1px; }
+  .shop-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .shop-item { padding: 10px; }
+  button, .shop-item { font-size: 14px; }
+  #actions { position: sticky; bottom: 0; z-index: 5; }
+}
