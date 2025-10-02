@@ -159,8 +159,10 @@ export class Renderer {
     for (const u of this.game.units) {
       ctx.save();
       ctx.translate(u.x * T, u.y * T);
-      // Body (image if available)
-      const pad = 6;
+      // Body (image if available). If on friendly bunker, render smaller to indicate stacking.
+      let pad = 6;
+      const onFriendlyBunker = this.game.isFriendlyBunkerAt(u.x, u.y, u.player);
+      if (onFriendlyBunker) pad = 12;
       const img = this.assets && this.assets.get(u.type);
       if (img) {
         ctx.imageSmoothingEnabled = true;
@@ -176,7 +178,7 @@ export class Renderer {
         ctx.fillRect(8, T - 14, T - 16, 4);
       } else {
         ctx.fillStyle = u.color;
-        ctx.fillRect(8, 8, T - 16, T - 16);
+        ctx.fillRect(pad, pad, T - pad * 2, T - pad * 2);
       }
       // HP bar
       const maxHp = u.maxHp ?? (u.type === 'Tank' ? 18 : (u.type === 'Artillery' ? 12 : 10));

@@ -55,6 +55,21 @@ export class GameState {
     return this.units.some(u => u.x === x && u.y === y) || this.forts.some(f => f.x === x && f.y === y);
   }
 
+  isFriendlyBunkerAt(x, y, player) {
+    const f = this.forts.find(ft => ft.x === x && ft.y === y && ft.type === 'Bunker');
+    return !!(f && f.player === player);
+  }
+
+  // Passability for a specific unit: cannot pass through any unit or fort, except may enter
+  // a tile with a friendly Bunker (stacking). Still cannot enter a tile with any unit present.
+  isPassableForUnit(unit, x, y) {
+    if (!this.isInside(x, y)) return false;
+    if (this.units.some(u => u.x === x && u.y === y)) return false;
+    const fort = this.forts.find(f => f.x === x && f.y === y);
+    if (!fort) return true;
+    return fort.type === 'Bunker' && fort.player === unit.player;
+  }
+
   canSpawnAt(x, y) {
     const { x: bx, y: by } = this.bases[this.currentPlayer];
     const dx = Math.abs(x - bx), dy = Math.abs(y - by);
@@ -77,7 +92,17 @@ export class GameState {
       { x: bx, y: by - 1 },
     ];
     for (const t of candidates) {
-      if (this.canSpawnAt(t.x, t.y)) tiles.push(t);
+      if (!this.isInside(t.x, t.y)) continue;
+      if (this.spawnQueue && this.spawnQueue.kind === 'unit') {
+        // Allow spawn onto friendly bunker as well
+        const unitTileBlocked = this.units.some(u => u.x === t.x && u.y === t.y);
+        const fort = this.forts.find(f => f.x === t.x && f.y === t.y);
+        if (!unitTileBlocked && (!fort || (fort.type === 'Bunker' && fort.player === this.currentPlayer))) {
+          tiles.push(t);
+        }
+      } else {
+        if (this.canSpawnAt(t.x, t.y)) tiles.push(t);
+      }
     }
     return tiles;
   }
@@ -103,14 +128,22 @@ export class GameState {
 
   trySpawnAt(x, y) {
     if (!this.spawnQueue) return false;
-    if (!this.canSpawnAt(x, y)) return false;
     const id = this.nextId();
     if (this.spawnQueue.kind === 'unit') {
+      // For units: allow spawning onto friendly bunker near base
+      const { x: bx, y: by } = this.bases[this.currentPlayer];
+      const dx = Math.abs(x - bx), dy = Math.abs(y - by);
+      const nearBase = (dx + dy) <= 1;
+      if (!nearBase || !this.isInside(x, y)) return false;
+      if (this.units.some(u => u.x === x && u.y === y)) return false;
+      const fort = this.forts.find(f => f.x === x && f.y === y);
+      if (fort && !(fort.type === 'Bunker' && fort.player === this.currentPlayer)) return false;
       const { unitType } = this.spawnQueue;
       const unit = makeUnit(id, unitType, this.currentPlayer, x, y);
       this.units.push(unit);
       this.money[this.currentPlayer] -= unitType.cost;
     } else if (this.spawnQueue.kind === 'fort') {
+      if (!this.canSpawnAt(x, y)) return false;
       const { fortType } = this.spawnQueue;
       const fort = makeFort(id, fortType, this.currentPlayer, x, y);
       this.forts.push(fort);
@@ -199,8 +232,7 @@ export class GameState {
   }
 
   moveUnitTo(unit, x, y) {
-    if (!this.isInside(x, y)) return false;
-    if (this.tileOccupied(x, y)) return false;
+    if (!this.isPassableForUnit(unit, x, y)) return false;
     unit.x = x; unit.y = y; unit.moved = true;
     // If moved onto a flag
     this.pickupFlagIfAny(unit);
@@ -240,7 +272,14 @@ export class GameState {
   attack(attacker, target, opts = {}) {
     const { suppressCounter = false } = opts;
     if (attacker.acted) return false;
-    target.hp -= attacker.atk;
+    // Compute damage with bunker cover if target is a unit standing on friendly bunker
+    let dmg = attacker.atk;
+    if (!target.fort) {
+      if (this.isFriendlyBunkerAt(target.x, target.y, target.player)) {
+        dmg = Math.max(1, dmg - 2); // bunker cover reduces incoming damage by 2
+      }
+    }
+    target.hp -= dmg;
     attacker.acted = true;
 
     // If target carried our flag, drop it on target tile
@@ -323,7 +362,7 @@ export class GameState {
           const key = `${nb.x},${nb.y}`;
           if (visited.has(key)) continue;
           visited.add(key);
-          if (this.tileOccupied(nb.x, nb.y)) continue; // cannot enter/pass
+          if (!this.isPassableForUnit(unit, nb.x, nb.y)) continue; // cannot enter/pass
           result.add(key);
           next.push({ x: nb.x, y: nb.y });
         }

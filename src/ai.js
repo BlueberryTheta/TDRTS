@@ -41,7 +41,7 @@ function bestMoveToward(game, unit, target) {
   // Exclude tiles with enemies (AI mirrors player movement rule)
   const filtered = moves
     .map((k) => k.split(',').map(Number))
-    .filter(([x, y]) => !game.getEnemyAt(x, y));
+    .filter(([x, y]) => !game.getEnemyAt(x, y) && !game.getFortAt(x, y));
   if (filtered.length === 0) return null;
   filtered.sort((a, b) => distance(a[0], a[1], target.x, target.y) - distance(b[0], b[1], target.x, target.y));
   return { x: filtered[0][0], y: filtered[0][1] };
@@ -52,10 +52,9 @@ function tryAttack(game, unit) {
   for (const key of atks) {
     const [x, y] = key.split(',').map(Number);
     const enemy = game.getEnemyAt(x, y);
-    if (enemy) {
-      game.attack(unit, enemy);
-      return true;
-    }
+    if (enemy) { game.attack(unit, enemy); return true; }
+    const fort = game.getFortAt(x, y);
+    if (fort && fort.player !== unit.player) { game.attack(unit, fort); return true; }
   }
   return false;
 }
@@ -101,4 +100,3 @@ export async function runAiTurn(game) {
   await sleep(200);
   if (game.currentPlayer === 1) game.endTurn();
 }
-
