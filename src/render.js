@@ -41,6 +41,20 @@ export class Renderer {
     }
   }
 
+  drawSpawnHints() {
+    const { ctx, T } = this;
+    if (!this.game.spawnQueue) return;
+    const tiles = this.game.getValidSpawnTiles();
+    if (!tiles.length) return;
+    ctx.fillStyle = 'rgba(137, 87, 229, 0.28)'; // translucent purple (base color family)
+    ctx.strokeStyle = 'rgba(137, 87, 229, 0.9)';
+    ctx.lineWidth = 2;
+    for (const { x, y } of tiles) {
+      ctx.fillRect(x * T + 2, y * T + 2, T - 4, T - 4);
+      ctx.strokeRect(x * T + 2, y * T + 2, T - 4, T - 4);
+    }
+  }
+
   drawBasesAndFlags() {
     const { ctx, T } = this;
     // Bases
@@ -139,6 +153,15 @@ export class Renderer {
       if (img) {
         ctx.imageSmoothingEnabled = true;
         ctx.drawImage(img, pad, pad, T - pad * 2, T - pad * 2);
+        // Per-player tint overlay for sprites
+        ctx.save();
+        ctx.globalCompositeOperation = 'multiply';
+        ctx.fillStyle = u.player === 0 ? 'rgba(88,166,255,0.35)' : 'rgba(255,166,87,0.35)';
+        ctx.fillRect(pad, pad, T - pad * 2, T - pad * 2);
+        ctx.restore();
+        // Add a small player color strip at the bottom
+        ctx.fillStyle = u.player === 0 ? '#58a6ff' : '#ffa657';
+        ctx.fillRect(8, T - 14, T - 16, 4);
       } else {
         ctx.fillStyle = u.color;
         ctx.fillRect(8, 8, T - 16, T - 16);
@@ -172,6 +195,7 @@ export class Renderer {
   draw() {
     this.drawBackground();
     this.drawGridLines();
+    this.drawSpawnHints();
     this.drawForts();
     this.drawRanges();
     this.drawBasesAndFlags();

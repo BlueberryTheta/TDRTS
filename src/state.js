@@ -60,6 +60,22 @@ export class GameState {
     return this.isInside(x, y) && nearBase && !this.tileOccupied(x, y);
   }
 
+  getValidSpawnTiles() {
+    const tiles = [];
+    const { x: bx, y: by } = this.bases[this.currentPlayer];
+    const candidates = [
+      { x: bx, y: by },
+      { x: bx + 1, y: by },
+      { x: bx - 1, y: by },
+      { x: bx, y: by + 1 },
+      { x: bx, y: by - 1 },
+    ];
+    for (const t of candidates) {
+      if (this.canSpawnAt(t.x, t.y)) tiles.push(t);
+    }
+    return tiles;
+  }
+
   queueSpawn(unitType) {
     if (this.money[this.currentPlayer] < unitType.cost) return;
     this.spawnQueue = { kind: 'unit', unitType };
@@ -182,6 +198,23 @@ export class GameState {
         const idx = this.units.findIndex(u => u.id === target.id);
         if (idx >= 0) this.units.splice(idx, 1);
       }
+    } else {
+      // Defender counterattacks if still alive (units only)
+      if (!target.fort) {
+        const counter = Math.max(0, target.def || 0);
+        if (counter > 0) {
+          attacker.hp -= counter;
+          // If attacker carried a flag, drop it on their tile before removal
+          const attEnemyFlag = this.flags[(attacker.player + 1) % 2];
+          if (attacker.hp <= 0) {
+            if (attEnemyFlag.carriedBy === attacker.id) {
+              this.dropFlagAt(attacker, attacker.x, attacker.y);
+            }
+            const ai = this.units.findIndex(u => u.id === attacker.id);
+            if (ai >= 0) this.units.splice(ai, 1);
+          }
+        }
+      }
     }
 
     // If attacker carries a flag and moved/attacked onto base, check capture
@@ -196,11 +229,11 @@ export class GameState {
     for (let dx = -maxD; dx <= maxD; dx++) {
       for (let dy = -maxD; dy <= maxD; dy++) {
         const d = Math.abs(dx) + Math.abs(dy);
-        if (d > maxD) continue;
+        if (d > maxD || d === 0) continue; // exclude origin
         const x = unit.x + dx, y = unit.y + dy;
         if (!this.isInside(x, y)) continue;
-        if (this.tileOccupiedByPlayer(x, y, unit.player)) continue;
-        // Allow moving onto enemy tile only if we intend to attack instead (handled in input)
+        // Only show truly valid destinations: must be empty of any unit/fort
+        if (this.tileOccupied(x, y)) continue;
         range.add(`${x},${y}`);
       }
     }

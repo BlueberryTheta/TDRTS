@@ -23,6 +23,7 @@ button:disabled { background: #30363d; border-color: #30363d; cursor: not-allowe
 .legend-swatch.p2 { background: #ffa657; }
 .legend-swatch.base { background: #8957e5; }
 .legend-swatch.flag { background: #d29922; }
+.legend-swatch.spawn { background: rgba(137,87,229,0.28); border-color: #8957e5; }
 .legend-swatch.fort { background: #8b949e; }
 .legend-swatch.move { background: rgba(88,166,255,0.25); border-color: #58a6ff; }
 .legend-swatch.atk { background: rgba(255,101,101,0.25); border-color: #ff6565; }
