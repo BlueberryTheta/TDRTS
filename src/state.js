@@ -280,6 +280,9 @@ export class GameState {
       }
     }
     target.hp -= dmg;
+    if (!target.fort) {
+      try { target.hitUntil = (performance && performance.now ? performance.now() : Date.now()) + 200; } catch (_) { target.hitUntil = Date.now() + 200; }
+    }
     attacker.acted = true;
 
     // If target carried our flag, drop it on target tile
@@ -303,6 +306,7 @@ export class GameState {
         const counter = Math.max(0, target.def || 0);
         if (counter > 0) {
           attacker.hp -= counter;
+          try { attacker.hitUntil = (performance && performance.now ? performance.now() : Date.now()) + 200; } catch (_) { attacker.hitUntil = Date.now() + 200; }
           // If attacker carried a flag, drop it on their tile before removal
           const attEnemyFlag = this.flags[(attacker.player + 1) % 2];
           if (attacker.hp <= 0) {

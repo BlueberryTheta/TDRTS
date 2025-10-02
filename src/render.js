@@ -158,7 +158,20 @@ export class Renderer {
     const { ctx, T } = this;
     for (const u of this.game.units) {
       ctx.save();
-      ctx.translate(u.x * T, u.y * T);
+      // Shake effect if recently hit
+      let shakeX = 0, shakeY = 0;
+      const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+      if (u.hitUntil && now < u.hitUntil) {
+        const remaining = u.hitUntil - now;
+        const duration = 200;
+        const intensity = Math.max(0, Math.min(1, remaining / duration));
+        const mag = 3 * intensity; // up to 3px
+        // Pseudo-random wiggle based on time and id
+        const t = now / 30 + u.id * 7.3;
+        shakeX = Math.sin(t) * mag;
+        shakeY = Math.cos(t * 1.3) * mag;
+      }
+      ctx.translate(u.x * T + shakeX, u.y * T + shakeY);
       // Body (image if available). If on friendly bunker, render smaller to indicate stacking.
       let pad = 6;
       const onFriendlyBunker = this.game.isFriendlyBunkerAt(u.x, u.y, u.player);

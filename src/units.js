@@ -24,6 +24,7 @@ export function makeUnit(id, unitType, player, x, y) {
     range: unitType.range,
     moved: false,
     acted: false,
+    hitUntil: 0,
     color: player === 0 ? '#58a6ff' : '#ffa657',
   };
 }
