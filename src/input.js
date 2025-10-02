@@ -47,7 +47,7 @@ export function attachInput(canvas, tileSize, game) {
     // Try move if not moved
     if (!sel.moved) {
       const moveTiles = game.getMoveRange(sel);
-      if (moveTiles.has(`${x},${y}`) && !enemy && !fort) {
+      if (moveTiles.has(`${x},${y}`)) {
         game.moveUnitTo(sel, x, y);
         // If carrying flag and on base, check capture now
         game.checkFlagCapture(sel);
