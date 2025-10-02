@@ -15,6 +15,7 @@ export function attachInput(canvas, tileSize, game) {
 
     const sel = game.getUnitById(game.selectedId);
     const enemy = game.getEnemyAt(x, y);
+    const fort = game.getFortAt(x, y);
     // If clicking your own unit, select it
     if (!sel) {
       game.selectUnitAt(x, y);
@@ -29,10 +30,10 @@ export function attachInput(canvas, tileSize, game) {
     }
 
     // Try attack if enemy in range and not acted
-    if (enemy && !sel.acted) {
+    if ((enemy || (fort && fort.player !== game.currentPlayer)) && !sel.acted) {
       const atkTiles = game.getAttackableTiles(sel);
       if (atkTiles.has(`${x},${y}`)) {
-        game.attack(sel, enemy);
+        game.attack(sel, enemy || fort);
         return;
       }
     }
@@ -40,7 +41,7 @@ export function attachInput(canvas, tileSize, game) {
     // Try move if not moved
     if (!sel.moved) {
       const moveTiles = game.getMoveRange(sel);
-      if (moveTiles.has(`${x},${y}`) && !enemy) {
+      if (moveTiles.has(`${x},${y}`) && !enemy && !fort) {
         game.moveUnitTo(sel, x, y);
         // If carrying flag and on base, check capture now
         game.checkFlagCapture(sel);
@@ -49,4 +50,3 @@ export function attachInput(canvas, tileSize, game) {
     }
   });
 }
-

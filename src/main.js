@@ -1,7 +1,8 @@
 import { GameState } from './state.js';
 import { Renderer } from './render.js';
 import { attachInput } from './input.js';
-import { UNIT_TYPES } from './units.js';
+import { UNIT_TYPES, FORT_TYPES } from './units.js';
+import { AssetStore } from './assets.js';
 import { runAiTurn } from './ai.js';
 
 const TILE_SIZE = 64;
@@ -50,6 +51,30 @@ loadBackgroundSequential([
   'background.jpeg',
 ], 'assets/map.svg');
 
+// --- Load unit/fort images ---
+const assets = new AssetStore(TILE_SIZE);
+renderer.assets = assets;
+
+const UNIT_TO_FILE = {
+  Infantry: 'assets/Infantry.png',
+  Tank: 'assets/Tank.png',
+  Artillery: 'assets/Artillery.png',
+  AntiTankGun: 'assets/Anti Tank Gun.png',
+  Engineer: 'assets/Engineer.png',
+  Officer: 'assets/Officer.png',
+  Medic: 'assets/Medic.png',
+  Scout: 'assets/Scout.png',
+  MechanizedInfantry: 'assets/Mechanized Infantry.png',
+};
+
+const FORT_TO_FILE = {
+  Pillbox: 'assets/Pill Box.png',
+  Bunker: 'assets/Bunker.png',
+  BarbedWire: 'assets/Barbed Wire.png',
+};
+
+assets.load({ ...UNIT_TO_FILE, ...FORT_TO_FILE });
+
 function updateUI() {
   ui.currentPlayer.textContent = String(game.currentPlayer + 1);
   ui.money.textContent = String(game.money[game.currentPlayer]);
@@ -67,10 +92,18 @@ ui.shop.addEventListener('click', (e) => {
   const target = e.target;
   if (!(target instanceof HTMLElement)) return;
   const type = target.getAttribute('data-unit');
-  if (!type) return;
-  const unitType = UNIT_TYPES[type];
-  if (!unitType) return;
-  game.queueSpawn(unitType);
+  const fortTypeKey = target.getAttribute('data-fort');
+  if (type) {
+    const unitType = UNIT_TYPES[type];
+    if (!unitType) return;
+    game.queueSpawn(unitType);
+    return;
+  }
+  if (fortTypeKey) {
+    const fortType = FORT_TYPES[fortTypeKey];
+    if (!fortType) return;
+    game.queueFort(fortType);
+  }
 });
 
 // End turn button

@@ -2,6 +2,12 @@ export const UNIT_TYPES = {
   Infantry: { name: 'Infantry', hp: 10, atk: 4, move: 3, range: 1, cost: 50, color: '#58a6ff' },
   Tank: { name: 'Tank', hp: 18, atk: 7, move: 2, range: 1, cost: 100, color: '#1f6feb' },
   Artillery: { name: 'Artillery', hp: 12, atk: 5, move: 1, range: 3, cost: 120, color: '#79c0ff' },
+  AntiTankGun: { name: 'AntiTankGun', hp: 12, atk: 6, move: 1, range: 2, cost: 110, color: '#9ecbff' },
+  Engineer: { name: 'Engineer', hp: 10, atk: 3, move: 3, range: 1, cost: 60, color: '#7ee787' },
+  Officer: { name: 'Officer', hp: 10, atk: 4, move: 2, range: 2, cost: 80, color: '#a5d6ff' },
+  Medic: { name: 'Medic', hp: 8, atk: 1, move: 3, range: 1, cost: 70, color: '#56d364' },
+  Scout: { name: 'Scout', hp: 8, atk: 2, move: 4, range: 1, cost: 60, color: '#94e2ff' },
+  MechanizedInfantry: { name: 'MechanizedInfantry', hp: 14, atk: 5, move: 3, range: 1, cost: 120, color: '#4aa3ff' },
 };
 
 export function makeUnit(id, unitType, player, x, y) {
@@ -11,6 +17,7 @@ export function makeUnit(id, unitType, player, x, y) {
     player,
     x, y,
     hp: unitType.hp,
+    maxHp: unitType.hp,
     atk: unitType.atk,
     move: unitType.move,
     range: unitType.range,
@@ -20,3 +27,21 @@ export function makeUnit(id, unitType, player, x, y) {
   };
 }
 
+export const FORT_TYPES = {
+  Pillbox: { name: 'Pillbox', hp: 20, cost: 80, color: '#8b949e' },
+  Bunker: { name: 'Bunker', hp: 30, cost: 120, color: '#6e7681' },
+  BarbedWire: { name: 'BarbedWire', hp: 8, cost: 30, color: '#9e6b41' },
+};
+
+export function makeFort(id, fortType, player, x, y) {
+  return {
+    id,
+    type: fortType.name,
+    fort: true,
+    player,
+    x, y,
+    hp: fortType.hp,
+    maxHp: fortType.hp,
+    color: fortType.color,
+  };
+}

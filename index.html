@@ -21,9 +21,24 @@
         <hr />
         <div id="shop">
           <h2>Shop</h2>
-          <button data-unit="Infantry">Buy Infantry ($50)</button>
-          <button data-unit="Tank">Buy Tank ($100)</button>
-          <button data-unit="Artillery">Buy Artillery ($120)</button>
+          <div>
+            <strong>Units</strong>
+          </div>
+          <button data-unit="Infantry">Infantry ($50)</button>
+          <button data-unit="Tank">Tank ($100)</button>
+          <button data-unit="Artillery">Artillery ($120)</button>
+          <button data-unit="AntiTankGun">Anti-Tank Gun ($110)</button>
+          <button data-unit="Engineer">Engineer ($60)</button>
+          <button data-unit="Officer">Officer ($80)</button>
+          <button data-unit="Medic">Medic ($70)</button>
+          <button data-unit="Scout">Scout ($60)</button>
+          <button data-unit="MechanizedInfantry">Mechanized Infantry ($120)</button>
+          <div style="margin-top:8px">
+            <strong>Fortifications</strong>
+          </div>
+          <button data-fort="Pillbox">Pillbox ($80)</button>
+          <button data-fort="Bunker">Bunker ($120)</button>
+          <button data-fort="BarbedWire">Barbed Wire ($30)</button>
           <div class="hint">After buying, click a valid spawn tile near your base.</div>
         </div>
         <hr />
@@ -39,6 +54,7 @@
           <div class="legend-row"><span class="legend-swatch p2"></span> Player 2 Units</div>
           <div class="legend-row"><span class="legend-swatch base"></span> Base (Flag starts here)</div>
           <div class="legend-row"><span class="legend-swatch flag"></span> Flag</div>
+          <div class="legend-row"><span class="legend-swatch fort"></span> Fortification</div>
           <div class="legend-row"><span class="legend-swatch move"></span> Move Range</div>
           <div class="legend-row"><span class="legend-swatch atk"></span> Attack Range</div>
         </div>
@@ -58,4 +74,3 @@
     <script type="module" src="src/main.js"></script>
   </body>
   </html>
-

@@ -4,6 +4,7 @@ export class Renderer {
     this.T = tileSize;
     this.game = game;
     this.bgImage = null; // optional background image
+    this.assets = null; // optional AssetStore
   }
 
   drawBackground() {
@@ -58,6 +59,44 @@ export class Renderer {
     }
   }
 
+  drawForts() {
+    const { ctx, T } = this;
+    for (const f of this.game.forts) {
+      ctx.save();
+      ctx.translate(f.x * T, f.y * T);
+      const pad = 6;
+      const img = this.assets && this.assets.get(f.type);
+      if (img) {
+        ctx.imageSmoothingEnabled = true;
+        ctx.drawImage(img, pad, pad, T - pad * 2, T - pad * 2);
+      } else {
+        if (f.type === 'BarbedWire') {
+          ctx.strokeStyle = '#9e6b41';
+          ctx.lineWidth = 2;
+          for (let i = 12; i <= T - 12; i += 8) {
+            ctx.beginPath();
+            ctx.moveTo(12, i);
+            ctx.lineTo(T - 12, i - 8);
+            ctx.stroke();
+          }
+        } else {
+          ctx.fillStyle = f.type === 'Bunker' ? '#6e7681' : '#8b949e';
+          ctx.fillRect(6, 6, T - 12, T - 12);
+          ctx.fillStyle = '#0d1117';
+          ctx.fillRect(10, 10, T - 20, T - 20);
+        }
+      }
+      // HP bar
+      const maxHp = f.maxHp ?? (f.type === 'Bunker' ? 30 : f.type === 'Pillbox' ? 20 : 8);
+      const hpRatio = Math.max(0, Math.min(1, f.hp / (maxHp || 1)));
+      ctx.fillStyle = '#161b22';
+      ctx.fillRect(8, T - 10, T - 16, 6);
+      ctx.fillStyle = hpRatio > 0.5 ? '#2ea043' : hpRatio > 0.25 ? '#d29922' : '#f85149';
+      ctx.fillRect(8, T - 10, (T - 16) * hpRatio, 6);
+      ctx.restore();
+    }
+  }
+
   drawFlag(x, y) {
     const { ctx, T } = this;
     ctx.save();
@@ -94,23 +133,32 @@ export class Renderer {
     for (const u of this.game.units) {
       ctx.save();
       ctx.translate(u.x * T, u.y * T);
-      // Body
-      ctx.fillStyle = u.color;
-      ctx.fillRect(8, 8, T - 16, T - 16);
+      // Body (image if available)
+      const pad = 6;
+      const img = this.assets && this.assets.get(u.type);
+      if (img) {
+        ctx.imageSmoothingEnabled = true;
+        ctx.drawImage(img, pad, pad, T - pad * 2, T - pad * 2);
+      } else {
+        ctx.fillStyle = u.color;
+        ctx.fillRect(8, 8, T - 16, T - 16);
+      }
       // HP bar
-      const maxHp = u.type === 'Tank' ? 18 : (u.type === 'Artillery' ? 12 : 10);
-      const hpRatio = Math.max(0, Math.min(1, u.hp / maxHp));
+      const maxHp = u.maxHp ?? (u.type === 'Tank' ? 18 : (u.type === 'Artillery' ? 12 : 10));
+      const hpRatio = Math.max(0, Math.min(1, u.hp / (maxHp || 1)));
       ctx.fillStyle = '#161b22';
       ctx.fillRect(8, T - 10, T - 16, 6);
       ctx.fillStyle = hpRatio > 0.5 ? '#2ea043' : hpRatio > 0.25 ? '#d29922' : '#f85149';
       ctx.fillRect(8, T - 10, (T - 16) * hpRatio, 6);
-      // Type initial
-      ctx.fillStyle = '#0d1117';
-      ctx.font = 'bold 12px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      const initial = u.type[0];
-      ctx.fillText(initial, T/2, T/2);
+      // Type initial (fallback only when no sprite)
+      if (!(this.assets && this.assets.get(u.type))) {
+        ctx.fillStyle = '#0d1117';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const initial = u.type[0];
+        ctx.fillText(initial, T/2, T/2);
+      }
       // Selection outline
       if (u.id === this.game.selectedId) {
         ctx.strokeStyle = '#fff';
@@ -124,6 +172,7 @@ export class Renderer {
   draw() {
     this.drawBackground();
     this.drawGridLines();
+    this.drawForts();
     this.drawRanges();
     this.drawBasesAndFlags();
     this.drawUnits();

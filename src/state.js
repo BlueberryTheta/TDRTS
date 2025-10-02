@@ -1,4 +1,4 @@
-import { UNIT_TYPES, makeUnit } from './units.js';
+import { UNIT_TYPES, makeUnit, FORT_TYPES, makeFort } from './units.js';
 
 export class GameState {
   constructor(width, height) {
@@ -19,6 +19,9 @@ export class GameState {
     // Units array
     this.units = [];
     this._unitId = 1;
+
+    // Fortifications array
+    this.forts = [];
 
     // Selected unit id
     this.selectedId = null;
@@ -42,11 +45,12 @@ export class GameState {
   }
 
   tileOccupiedByPlayer(x, y, player) {
-    return this.units.some(u => u.x === x && u.y === y && u.player === player);
+    return this.units.some(u => u.x === x && u.y === y && u.player === player) ||
+           this.forts.some(f => f.x === x && f.y === y && f.player === player);
   }
 
   tileOccupied(x, y) {
-    return this.units.some(u => u.x === x && u.y === y);
+    return this.units.some(u => u.x === x && u.y === y) || this.forts.some(f => f.x === x && f.y === y);
   }
 
   canSpawnAt(x, y) {
@@ -57,18 +61,30 @@ export class GameState {
   }
 
   queueSpawn(unitType) {
-    if (this.money[this.currentPlayer] < unitType.cost) return; // not enough money
-    this.spawnQueue = { unitType };
+    if (this.money[this.currentPlayer] < unitType.cost) return;
+    this.spawnQueue = { kind: 'unit', unitType };
+  }
+
+  queueFort(fortType) {
+    if (this.money[this.currentPlayer] < fortType.cost) return;
+    this.spawnQueue = { kind: 'fort', fortType };
   }
 
   trySpawnAt(x, y) {
     if (!this.spawnQueue) return false;
     if (!this.canSpawnAt(x, y)) return false;
-    const { unitType } = this.spawnQueue;
     const id = this.nextId();
-    const unit = makeUnit(id, unitType, this.currentPlayer, x, y);
-    this.units.push(unit);
-    this.money[this.currentPlayer] -= unitType.cost;
+    if (this.spawnQueue.kind === 'unit') {
+      const { unitType } = this.spawnQueue;
+      const unit = makeUnit(id, unitType, this.currentPlayer, x, y);
+      this.units.push(unit);
+      this.money[this.currentPlayer] -= unitType.cost;
+    } else if (this.spawnQueue.kind === 'fort') {
+      const { fortType } = this.spawnQueue;
+      const fort = makeFort(id, fortType, this.currentPlayer, x, y);
+      this.forts.push(fort);
+      this.money[this.currentPlayer] -= fortType.cost;
+    }
     this.spawnQueue = null;
     return true;
   }
@@ -101,6 +117,10 @@ export class GameState {
 
   getEnemyAt(x, y) {
     return this.units.find(u => u.x === x && u.y === y && u.player !== this.currentPlayer) || null;
+  }
+
+  getFortAt(x, y) {
+    return this.forts.find(f => f.x === x && f.y === y) || null;
   }
 
   moveUnitTo(unit, x, y) {
@@ -154,9 +174,14 @@ export class GameState {
     }
 
     if (target.hp <= 0) {
-      // Remove dead unit
-      const idx = this.units.findIndex(u => u.id === target.id);
-      if (idx >= 0) this.units.splice(idx, 1);
+      // Remove dead unit or fort
+      if (target.fort) {
+        const fi = this.forts.findIndex(f => f.id === target.id);
+        if (fi >= 0) this.forts.splice(fi, 1);
+      } else {
+        const idx = this.units.findIndex(u => u.id === target.id);
+        if (idx >= 0) this.units.splice(idx, 1);
+      }
     }
 
     // If attacker carries a flag and moved/attacked onto base, check capture
@@ -197,4 +222,3 @@ export class GameState {
     return tiles;
   }
 }
-
