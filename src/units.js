@@ -43,6 +43,8 @@ export function makeFort(id, fortType, player, x, y) {
     x, y,
     hp: fortType.hp,
     maxHp: fortType.hp,
+    atk: fortType.atk ?? 0,
+    range: fortType.range ?? 0,
     color: fortType.color,
   };
 }

@@ -102,7 +102,13 @@ ui.shop.addEventListener('click', (e) => {
   if (fortTypeKey) {
     const fortType = FORT_TYPES[fortTypeKey];
     if (!fortType) return;
-    game.queueFort(fortType);
+    // If an Engineer is selected for the current player and not acted, queue build around it
+    const sel = game.getUnitById(game.selectedId);
+    if (sel && sel.player === game.currentPlayer && sel.type === 'Engineer' && !sel.acted) {
+      game.queueFortBuild(fortType);
+    } else {
+      game.queueFort(fortType);
+    }
   }
 });
 

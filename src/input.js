@@ -6,6 +6,12 @@ export function attachInput(canvas, tileSize, game) {
     const x = Math.floor(cx / tileSize);
     const y = Math.floor(cy / tileSize);
 
+    // If an engineer build is queued, try to build here first
+    if (game.buildQueue) {
+      const built = game.tryBuildAt(x, y);
+      if (built) return;
+    }
+
     // If a spawn is queued, try to spawn here
     if (game.spawnQueue) {
       const spawned = game.trySpawnAt(x, y);

@@ -28,6 +28,8 @@ export class GameState {
 
     // Spawn queue: unit type selected from shop; expect a tile click near base to place
     this.spawnQueue = null; // { unitType }
+    // Engineer build queue: build a fort adjacent to selected engineer
+    this.buildQueue = null; // { fortType, engineerId }
   }
 
   nextId() { return this._unitId++; }
@@ -60,6 +62,10 @@ export class GameState {
     return this.isInside(x, y) && nearBase && !this.tileOccupied(x, y);
   }
 
+  getSelectedUnit() {
+    return this.getUnitById(this.selectedId);
+  }
+
   getValidSpawnTiles() {
     const tiles = [];
     const { x: bx, y: by } = this.bases[this.currentPlayer];
@@ -86,6 +92,15 @@ export class GameState {
     this.spawnQueue = { kind: 'fort', fortType };
   }
 
+  queueFortBuild(fortType) {
+    const eng = this.getSelectedUnit();
+    if (!eng || eng.player !== this.currentPlayer) return;
+    if (eng.type !== 'Engineer') return;
+    if (eng.acted) return;
+    if (this.money[this.currentPlayer] < fortType.cost) return;
+    this.buildQueue = { fortType, engineerId: eng.id };
+  }
+
   trySpawnAt(x, y) {
     if (!this.spawnQueue) return false;
     if (!this.canSpawnAt(x, y)) return false;
@@ -102,6 +117,47 @@ export class GameState {
       this.money[this.currentPlayer] -= fortType.cost;
     }
     this.spawnQueue = null;
+    return true;
+  }
+
+  canEngineerBuildAt(x, y) {
+    if (!this.buildQueue) return false;
+    const eng = this.getUnitById(this.buildQueue.engineerId);
+    if (!eng) return false;
+    if (!this.isInside(x, y)) return false;
+    if (this.tileOccupied(x, y)) return false;
+    const dx = Math.abs(x - eng.x);
+    const dy = Math.abs(y - eng.y);
+    const cheb = Math.max(dx, dy);
+    return cheb <= 1 && !(dx === 0 && dy === 0);
+  }
+
+  getValidEngineerBuildTiles() {
+    if (!this.buildQueue) return [];
+    const eng = this.getUnitById(this.buildQueue.engineerId);
+    if (!eng) return [];
+    const tiles = [];
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dy = -1; dy <= 1; dy++) {
+        if (dx === 0 && dy === 0) continue;
+        const x = eng.x + dx, y = eng.y + dy;
+        if (this.canEngineerBuildAt(x, y)) tiles.push({ x, y });
+      }
+    }
+    return tiles;
+  }
+
+  tryBuildAt(x, y) {
+    if (!this.buildQueue) return false;
+    if (!this.canEngineerBuildAt(x, y)) return false;
+    const eng = this.getUnitById(this.buildQueue.engineerId);
+    const { fortType } = this.buildQueue;
+    const id = this.nextId();
+    const fort = makeFort(id, fortType, this.currentPlayer, x, y);
+    this.forts.push(fort);
+    this.money[this.currentPlayer] -= fortType.cost;
+    if (eng) eng.acted = true;
+    this.buildQueue = null;
     return true;
   }
 
@@ -126,6 +182,7 @@ export class GameState {
     // Clear selection/spawn
     this.selectedId = null;
     this.spawnQueue = null;
+    this.buildQueue = null;
   }
 
   selectUnitAt(x, y) {
