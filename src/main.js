@@ -128,8 +128,13 @@ function setUIEnabled(enabled) {
 async function maybeRunAI() {
   if (game.currentPlayer !== 1) return;
   setUIEnabled(false);
-  await runAiTurn(game);
-  setUIEnabled(true);
+  try {
+    await runAiTurn(game);
+  } catch (err) {
+    console.error('AI turn error:', err);
+  } finally {
+    setUIEnabled(true);
+  }
 }
 
 // If for any reason AI starts, ensure it runs

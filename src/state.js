@@ -251,18 +251,9 @@ export class GameState {
     const maxSteps = unit.move;
     const visited = new Set([`${unit.x},${unit.y}`]);
     const result = new Set();
-    let frontier = [{ x: unit.x, y: unit.y, d: 0 }];
-    const push = (nx, ny, d) => {
-      const key = `${nx},${ny}`;
-      if (visited.has(key)) return;
-      visited.add(key);
-      // If occupied, we cannot enter or pass through
-      if (this.tileOccupied(nx, ny)) return;
-      result.add(key);
-      frontierNext.push({ x: nx, y: ny, d });
-    };
+    let frontier = [{ x: unit.x, y: unit.y }];
     for (let step = 0; step < maxSteps; step++) {
-      const frontierNext = [];
+      const next = [];
       for (const { x, y } of frontier) {
         const nbs = [
           { x: x + 1, y },
@@ -272,10 +263,15 @@ export class GameState {
         ];
         for (const nb of nbs) {
           if (!this.isInside(nb.x, nb.y)) continue;
-          push(nb.x, nb.y, step + 1);
+          const key = `${nb.x},${nb.y}`;
+          if (visited.has(key)) continue;
+          visited.add(key);
+          if (this.tileOccupied(nb.x, nb.y)) continue; // cannot enter/pass
+          result.add(key);
+          next.push({ x: nb.x, y: nb.y });
         }
       }
-      frontier = frontierNext;
+      frontier = next;
       if (frontier.length === 0) break;
     }
     return result; // Set of "x,y"
