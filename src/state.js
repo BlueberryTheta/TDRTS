@@ -465,7 +465,7 @@ export class GameState {
     }
   }
 
-  // Compute reachable tiles using BFS over orthogonal neighbors, up to unit.move steps.
+  // Compute reachable tiles using BFS over 8-direction (including diagonals), up to unit.move steps.
   // Blocks through any occupied tile (units or forts). Does not include the origin tile.
   getMoveRange(unit) {
     const maxSteps = unit.move;
@@ -475,20 +475,24 @@ export class GameState {
     for (let step = 0; step < maxSteps; step++) {
       const next = [];
       for (const { x, y } of frontier) {
-        const nbs = [
-          { x: x + 1, y },
-          { x: x - 1, y },
-          { x, y: y + 1 },
-          { x, y: y - 1 },
-        ];
-        for (const nb of nbs) {
-          if (!this.isInside(nb.x, nb.y)) continue;
-          const key = `${nb.x},${nb.y}`;
-          if (visited.has(key)) continue;
-          visited.add(key);
-          if (!this.isPassableForUnit(unit, nb.x, nb.y)) continue; // cannot enter/pass
-          result.add(key);
-          next.push({ x: nb.x, y: nb.y });
+        for (let dx = -1; dx <= 1; dx++) {
+          for (let dy = -1; dy <= 1; dy++) {
+            if (dx === 0 && dy === 0) continue;
+            const nx = x + dx, ny = y + dy;
+            if (!this.isInside(nx, ny)) continue;
+            // Prevent corner cutting: for diagonal steps, both adjacent orthogonals must be passable
+            if (dx !== 0 && dy !== 0) {
+              const side1 = this.isPassableForUnit(unit, x + dx, y);
+              const side2 = this.isPassableForUnit(unit, x, y + dy);
+              if (!(side1 && side2)) continue;
+            }
+            const key = `${nx},${ny}`;
+            if (visited.has(key)) continue;
+            visited.add(key);
+            if (!this.isPassableForUnit(unit, nx, ny)) continue; // cannot enter/pass
+            result.add(key);
+            next.push({ x: nx, y: ny });
+          }
         }
       }
       frontier = next;

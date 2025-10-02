@@ -251,8 +251,8 @@ export class Renderer {
     this.drawRanges();
     this.drawBasesAndFlags();
     this.drawUnits();
-    this.drawEffects();
     this.drawFog();
+    this.drawEffects();
   }
 
   drawFog() {
@@ -283,16 +283,26 @@ export class Renderer {
         const cy = e.y * T + T / 2;
         const r1 = 6 + prog * 10;
         const r2 = 2 + prog * 20;
+        ctx.save();
+        // Make blasts pop over fog and sprites
+        ctx.globalCompositeOperation = 'lighter';
         // Outer smoke ring
         ctx.beginPath();
         ctx.arc(cx, cy, r2, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(125,125,125,${0.25 * (1 - prog)})`;
+        ctx.fillStyle = `rgba(125,125,125,${0.35 * (1 - prog)})`;
         ctx.fill();
         // Core flash
         ctx.beginPath();
         ctx.arc(cx, cy, r1, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255,140,0,${0.5 * (1 - prog)})`;
+        ctx.fillStyle = `rgba(255,170,40,${0.7 * (1 - prog)})`;
         ctx.fill();
+        // Shock ring
+        ctx.beginPath();
+        ctx.arc(cx, cy, 8 + prog * 22, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(255,220,120,${0.5 * (1 - prog)})`;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.restore();
       }
     }
   }
