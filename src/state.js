@@ -116,6 +116,8 @@ export class GameState {
         u.acted = false;
       }
     });
+    // Fortifications end-of-turn effects (pillbox auto-fire)
+    this.pillboxAutoFire();
     // Income
     this.money[(this.currentPlayer + 1) % 2] += this.income;
     // Next player
@@ -141,7 +143,7 @@ export class GameState {
 
   moveUnitTo(unit, x, y) {
     if (!this.isInside(x, y)) return false;
-    if (this.tileOccupiedByPlayer(x, y, unit.player)) return false;
+    if (this.tileOccupied(x, y)) return false;
     unit.x = x; unit.y = y; unit.moved = true;
     // If moved onto a flag
     this.pickupFlagIfAny(unit);
@@ -178,7 +180,8 @@ export class GameState {
     }
   }
 
-  attack(attacker, target) {
+  attack(attacker, target, opts = {}) {
+    const { suppressCounter = false } = opts;
     if (attacker.acted) return false;
     target.hp -= attacker.atk;
     attacker.acted = true;
@@ -200,7 +203,7 @@ export class GameState {
       }
     } else {
       // Defender counterattacks if still alive (units only)
-      if (!target.fort) {
+      if (!suppressCounter && !target.fort) {
         const counter = Math.max(0, target.def || 0);
         if (counter > 0) {
           attacker.hp -= counter;
@@ -222,22 +225,60 @@ export class GameState {
     return true;
   }
 
-  // Compute reachable tiles for a unit via Manhattan distance and empty tiles
-  getMoveRange(unit) {
-    const range = new Set();
-    const maxD = unit.move;
-    for (let dx = -maxD; dx <= maxD; dx++) {
-      for (let dy = -maxD; dy <= maxD; dy++) {
-        const d = Math.abs(dx) + Math.abs(dy);
-        if (d > maxD || d === 0) continue; // exclude origin
-        const x = unit.x + dx, y = unit.y + dy;
-        if (!this.isInside(x, y)) continue;
-        // Only show truly valid destinations: must be empty of any unit/fort
-        if (this.tileOccupied(x, y)) continue;
-        range.add(`${x},${y}`);
+  // Auto-fire from pillboxes at end of turn: damages all enemy units in range
+  pillboxAutoFire() {
+    const pillboxes = this.forts.filter(f => f.type === 'Pillbox' && (f.atk || 0) > 0);
+    for (const f of pillboxes) {
+      const range = f.range ?? 2;
+      for (const u of this.units) {
+        if (u.player === f.player) continue; // only enemies
+        const d = Math.abs(u.x - f.x) + Math.abs(u.y - f.y);
+        if (d <= range) {
+          // Use attack path with suppressCounter to avoid units damaging pillbox back
+          // Temporarily give fort an atk field if absent
+          const atkVal = f.atk ?? 0;
+          if (atkVal <= 0) continue;
+          const temp = { ...f, atk: atkVal, acted: false };
+          this.attack(temp, u, { suppressCounter: true });
+        }
       }
     }
-    return range; // Set of "x,y"
+  }
+
+  // Compute reachable tiles using BFS over orthogonal neighbors, up to unit.move steps.
+  // Blocks through any occupied tile (units or forts). Does not include the origin tile.
+  getMoveRange(unit) {
+    const maxSteps = unit.move;
+    const visited = new Set([`${unit.x},${unit.y}`]);
+    const result = new Set();
+    let frontier = [{ x: unit.x, y: unit.y, d: 0 }];
+    const push = (nx, ny, d) => {
+      const key = `${nx},${ny}`;
+      if (visited.has(key)) return;
+      visited.add(key);
+      // If occupied, we cannot enter or pass through
+      if (this.tileOccupied(nx, ny)) return;
+      result.add(key);
+      frontierNext.push({ x: nx, y: ny, d });
+    };
+    for (let step = 0; step < maxSteps; step++) {
+      const frontierNext = [];
+      for (const { x, y } of frontier) {
+        const nbs = [
+          { x: x + 1, y },
+          { x: x - 1, y },
+          { x, y: y + 1 },
+          { x, y: y - 1 },
+        ];
+        for (const nb of nbs) {
+          if (!this.isInside(nb.x, nb.y)) continue;
+          push(nb.x, nb.y, step + 1);
+        }
+      }
+      frontier = frontierNext;
+      if (frontier.length === 0) break;
+    }
+    return result; // Set of "x,y"
   }
 
   getAttackableTiles(unit) {

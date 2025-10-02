@@ -29,9 +29,9 @@ export function makeUnit(id, unitType, player, x, y) {
 }
 
 export const FORT_TYPES = {
-  Pillbox: { name: 'Pillbox', hp: 20, cost: 80, color: '#8b949e' },
-  Bunker: { name: 'Bunker', hp: 30, cost: 120, color: '#6e7681' },
-  BarbedWire: { name: 'BarbedWire', hp: 8, cost: 30, color: '#9e6b41' },
+  Pillbox: { name: 'Pillbox', hp: 20, cost: 80, color: '#8b949e', atk: 4, range: 2 },
+  Bunker: { name: 'Bunker', hp: 30, cost: 120, color: '#6e7681', atk: 0, range: 0 },
+  BarbedWire: { name: 'BarbedWire', hp: 8, cost: 30, color: '#9e6b41', atk: 0, range: 0 },
 };
 
 export function makeFort(id, fortType, player, x, y) {
