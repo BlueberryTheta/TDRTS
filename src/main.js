@@ -103,7 +103,7 @@ function updateUI() {
     const aura = game.getOfficerBonus(u);
     const atkEff = (u.atk || 0) + lvl + aura;
     const defEff = (u.def || 0) + lvl + aura;
-    if (statsEl) statsEl.textContent = `ATK: ${atkEff}, DEF: ${defEff}, MOVE: ${u.move}, RNG: ${u.range}`;
+    if (statsEl) statsEl.textContent = `ATK: ${atkEff}, DEF: ${defEff}, MOVE: ${u.move}, RNG: ${u.range}, SIGHT: ${u.sight ?? 3}`;
     const rk = rankForXP(u.xp || 0);
     if (xpEl) xpEl.firstChild ? xpEl.firstChild.nodeValue = `XP: ${u.xp || 0} (` : (xpEl.textContent = `XP: ${u.xp || 0} (`);
     if (rankEl) rankEl.textContent = rk.label;
@@ -113,6 +113,8 @@ function updateUI() {
 }
 
 function animate() {
+  // Keep visibility current for rendering and input
+  if (typeof game.recomputeVisibility === 'function') game.recomputeVisibility();
   renderer.draw();
   updateUI();
   requestAnimationFrame(animate);

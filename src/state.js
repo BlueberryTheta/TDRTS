@@ -35,6 +35,8 @@ export class GameState {
     // Aura/heal parameters
     this.auraRadius = 1; // Chebyshev distance
     this.medicHeal = 2; // HP per end of turn
+    // Fog of war visibility cache per player
+    this.visibility = [new Set(), new Set()];
   }
 
   nextId() { return this._unitId++; }
@@ -49,6 +51,36 @@ export class GameState {
 
   isInside(x, y) {
     return x >= 0 && y >= 0 && x < this.w && y < this.h;
+  }
+
+  // --- Fog of War ---
+  recomputeVisibility() {
+    for (let p = 0; p < 2; p++) {
+      const vis = new Set();
+      for (const u of this.units) {
+        if (u.player !== p) continue;
+        const r = u.sight ?? 3;
+        for (let dx = -r; dx <= r; dx++) {
+          for (let dy = -r; dy <= r; dy++) {
+            const d = Math.abs(dx) + Math.abs(dy);
+            if (d > r) continue;
+            const x = u.x + dx, y = u.y + dy;
+            if (!this.isInside(x, y)) continue;
+            vis.add(`${x},${y}`);
+          }
+        }
+      }
+      // Always see own units' tiles
+      for (const u of this.units) if (u.player === p) vis.add(`${u.x},${u.y}`);
+      // Always see own base tile
+      vis.add(`${this.bases[p].x},${this.bases[p].y}`);
+      this.visibility[p] = vis;
+    }
+  }
+
+  isTileVisibleTo(player, x, y) {
+    const set = this.visibility[player] || new Set();
+    return set.has(`${x},${y}`);
   }
 
   tileOccupiedByPlayer(x, y, player) {
@@ -269,17 +301,6 @@ export class GameState {
     return tiles;
   }
 
-  // Spotting: check if any friendly Scout is within N (Manhattan) tiles of a target tile
-  hasFriendlyScoutNearTile(x, y, player, radius = 5) {
-    for (const u of this.units) {
-      if (u.player !== player) continue;
-      if (u.type !== 'Scout') continue;
-      const d = Math.abs(u.x - x) + Math.abs(u.y - y);
-      if (d <= radius) return true;
-    }
-    return false;
-  }
-
   // --- Officer aura helpers ---
   hasFriendlyOfficerNearby(unit) {
     const rad = this.auraRadius;
@@ -329,8 +350,11 @@ export class GameState {
   }
 
   attack(attacker, target, opts = {}) {
-    const { suppressCounter = false } = opts;
+    let { suppressCounter = false } = opts;
     if (attacker.acted) return false;
+    // Artillery cannot attack adjacent targets (range <= 1)
+    const distAT = Math.abs(attacker.x - target.x) + Math.abs(attacker.y - target.y);
+    if (!attacker.fort && attacker.type === 'Artillery' && distAT <= 1) return false;
     // Compute damage with bunker cover if target is a unit standing on friendly bunker
     const atkBonus = attacker.fort ? 0 : (rankForXP(attacker.xp || 0).level + this.getOfficerBonus(attacker)); // forts don't level
     let dmg = (attacker.atk || 0) + atkBonus;
@@ -349,9 +373,8 @@ export class GameState {
 
     // Explosion effect for long-range spotted artillery fire
     if (!attacker.fort && attacker.type === 'Artillery') {
-      const dist = Math.abs(attacker.x - target.x) + Math.abs(attacker.y - target.y);
       const baseR = attacker.range;
-      if (dist > baseR && dist <= 10 && this.hasFriendlyScoutNearTile(target.x, target.y, attacker.player, 5)) {
+      if (distAT > baseR && distAT <= 10 && this.hasFriendlyScoutNearTile(target.x, target.y, attacker.player, 5)) {
         this.spawnExplosion(target.x, target.y, 400);
       }
     }
@@ -372,7 +395,9 @@ export class GameState {
         if (idx >= 0) this.units.splice(idx, 1);
       }
     } else {
-      // Defender counterattacks if still alive (units only)
+      // Defender counterattacks if still alive (units only).
+      // Artillery should not take counter damage when firing at range (> 1 tile)
+      if (!attacker.fort && attacker.type === 'Artillery' && distAT > 1) suppressCounter = true;
       if (!suppressCounter && !target.fort) {
         const defBonus = rankForXP(target.xp || 0).level + this.getOfficerBonus(target);
         const counter = Math.max(0, (target.def || 0) + defBonus);
@@ -476,6 +501,7 @@ export class GameState {
     const tiles = new Set();
     // Base attack range
     const baseRange = unit.range;
+    const minRange = unit.type === 'Artillery' ? 2 : 1;
     // For artillery, allow extended range if tile is spotted by a friendly Scout
     const extendedRange = unit.type === 'Artillery' ? 10 : baseRange;
     const maxLoop = Math.max(baseRange, extendedRange);
@@ -486,11 +512,11 @@ export class GameState {
         const x = unit.x + dx, y = unit.y + dy;
         if (!this.isInside(x, y)) continue;
         // Within base range is always valid
-        if (d <= baseRange) {
+        if (d <= baseRange && d >= minRange) {
           tiles.add(`${x},${y}`);
         } else if (unit.type === 'Artillery') {
           // Within extended range only if a friendly Scout is within 5 tiles of the target tile
-          if (d <= extendedRange && this.hasFriendlyScoutNearTile(x, y, unit.player, 5)) {
+          if (d <= extendedRange && d >= minRange && this.hasFriendlyScoutNearTile(x, y, unit.player, 5)) {
             tiles.add(`${x},${y}`);
           }
         }

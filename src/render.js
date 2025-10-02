@@ -81,13 +81,20 @@ export class Renderer {
       let { x, y } = flag;
       const carrier = flag.carriedBy ? this.game.getUnitById(flag.carriedBy) : null;
       if (carrier) { x = carrier.x; y = carrier.y; }
-      this.drawFlag(x, y);
+      // Show enemy flag only if visible to current player; always show your own flag
+      const current = this.game.currentPlayer;
+      if (i === current || this.game.isTileVisibleTo(current, x, y)) {
+        this.drawFlag(x, y);
+      }
     }
   }
 
   drawForts() {
     const { ctx, T } = this;
     for (const f of this.game.forts) {
+      // Hide enemy forts in fog
+      const current = this.game.currentPlayer;
+      if (f.player !== current && !this.game.isTileVisibleTo(current, f.x, f.y)) continue;
       ctx.save();
       ctx.translate(f.x * T, f.y * T);
       const pad = 6;
@@ -171,6 +178,9 @@ export class Renderer {
   drawUnits() {
     const { ctx, T } = this;
     for (const u of this.game.units) {
+      // Hide enemy units in fog
+      const current = this.game.currentPlayer;
+      if (u.player !== current && !this.game.isTileVisibleTo(current, u.x, u.y)) continue;
       ctx.save();
       // Shake effect if recently hit
       let shakeX = 0, shakeY = 0;
@@ -242,6 +252,23 @@ export class Renderer {
     this.drawBasesAndFlags();
     this.drawUnits();
     this.drawEffects();
+    this.drawFog();
+  }
+
+  drawFog() {
+    const { ctx, T } = this;
+    const current = this.game.currentPlayer;
+    // Ensure visibility is up to date
+    if (typeof this.game.recomputeVisibility === 'function') this.game.recomputeVisibility();
+    const vis = this.game.visibility[current] || new Set();
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    for (let y = 0; y < this.game.h; y++) {
+      for (let x = 0; x < this.game.w; x++) {
+        if (!vis.has(`${x},${y}`)) {
+          ctx.fillRect(x * T, y * T, T, T);
+        }
+      }
+    }
   }
 
   drawEffects() {

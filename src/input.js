@@ -1,5 +1,7 @@
 export function attachInput(canvas, tileSize, game) {
   canvas.addEventListener('click', (e) => {
+    // Recompute visibility for accurate fog interactions
+    if (typeof game.recomputeVisibility === 'function') game.recomputeVisibility();
     const rect = canvas.getBoundingClientRect();
     const cx = e.clientX - rect.left;
     const cy = e.clientY - rect.top;
@@ -37,6 +39,8 @@ export function attachInput(canvas, tileSize, game) {
 
     // Try attack if enemy in range and not acted
     if ((enemy || (fort && fort.player !== game.currentPlayer)) && !sel.acted) {
+      // Require visibility of target tile for player interactions
+      if (!game.isTileVisibleTo(game.currentPlayer, x, y)) return;
       const atkTiles = game.getAttackableTiles(sel);
       if (atkTiles.has(`${x},${y}`)) {
         game.attack(sel, enemy || fort);
