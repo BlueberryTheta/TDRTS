@@ -150,10 +150,11 @@ function animate() {
 
 // Shop interaction
 ui.shop.addEventListener('click', (e) => {
-  const target = e.target;
-  if (!(target instanceof HTMLElement)) return;
-  const type = target.getAttribute('data-unit');
-  const fortTypeKey = target.getAttribute('data-fort');
+  const root = e.currentTarget;
+  const el = (e.target instanceof HTMLElement) ? e.target.closest('[data-unit],[data-fort]') : null;
+  if (!(el instanceof HTMLElement)) return;
+  const type = el.getAttribute('data-unit');
+  const fortTypeKey = el.getAttribute('data-fort');
   if (type) {
     const unitType = UNIT_TYPES[type];
     if (!unitType) return;
