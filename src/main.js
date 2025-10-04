@@ -56,6 +56,9 @@ loadBackgroundSequential([
   'background.jpeg',
 ], 'assets/map.svg');
 
+// Determine mode (ai or mp) via URL or landing modal
+let MODE = (new URLSearchParams(location.search)).get('mode');
+
 // --- Load unit/fort images ---
 const assets = new AssetStore(TILE_SIZE);
 renderer.assets = assets;
@@ -119,6 +122,28 @@ setAccordionsOpenByViewport();
 window.addEventListener('resize', () => {
   setAccordionsOpenByViewport();
 });
+
+// --- Landing (mode selection) ---
+const modeModal = document.getElementById('modeModal');
+const playVsAiBtn = document.getElementById('playVsAi');
+const playOnlineBtn = document.getElementById('playOnline');
+function setMode(m) {
+  MODE = m;
+  if (modeModal) modeModal.style.display = 'none';
+  if (MODE === 'ai') {
+    // If it's AI's turn (player 2) for any reason, run AI
+    maybeRunAI();
+  } else if (MODE === 'mp') {
+    // Multiplayer stub: disable AI; UI stays as-is
+  }
+}
+if (!MODE) {
+  if (modeModal) modeModal.style.display = 'flex';
+} else if (modeModal) {
+  modeModal.style.display = 'none';
+}
+if (playVsAiBtn) playVsAiBtn.onclick = () => setMode('ai');
+if (playOnlineBtn) playOnlineBtn.onclick = () => setMode('mp');
 
 function updateUI() {
   ui.currentPlayer.textContent = String(game.currentPlayer + 1);
@@ -235,6 +260,7 @@ function setUIEnabled(enabled) {
 }
 
 async function maybeRunAI() {
+  if (MODE !== 'ai') return;
   if (game.currentPlayer !== 1) return;
   setUIEnabled(false);
   try {

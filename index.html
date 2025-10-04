@@ -103,6 +103,21 @@
         </div>
       </div>
     </div>
+    <!-- Mode Selection Modal (Landing) -->
+    <div id="modeModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modeTitle">
+      <div class="modal-content panel">
+        <h2 id="modeTitle" style="margin-top:0">Select Mode</h2>
+        <p class="hint">Choose how you want to play.</p>
+        <div style="display:flex; gap:10px; justify-content:center; margin-top:8px">
+          <button id="playVsAi" class="hud-button">Play vs Computer</button>
+          <button id="playOnline" class="hud-button">Play Online (Friend)</button>
+        </div>
+        <details id="mpInfo" class="accordion" style="margin-top:10px">
+          <summary>Online Multiplayer (preview)</summary>
+          <p class="hint">This prototype shows the flow. Next step is wiring a WebSocket server for rooms and turn sync.</p>
+        </details>
+      </div>
+    </div>
     <script type="module" src="src/main.js"></script>
   </body>
   </html>
