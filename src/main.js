@@ -322,7 +322,18 @@ async function initMultiplayer() {
   const wsUrl = (window.WS_URL || localStorage.getItem('WS_URL') || defaultWs);
   const { MultiplayerClient } = await import('./net.js');
   mpClient = new MultiplayerClient(wsUrl);
-  await mpClient.connect();
+  try {
+    await mpClient.connect();
+  } catch (e) {
+    // Show mode modal with error and allow falling back
+    const modeModal = document.getElementById('modeModal');
+    const info = document.getElementById('mpInfo');
+    if (info) info.innerHTML = `<summary>Connection Error</summary><p class="hint">Failed to open WebSocket at <code>${wsUrl}</code>.<br/>Make sure you're running on Vercel or 'vercel dev' locally. You can fall back to Play vs Computer.</p>`;
+    if (modeModal) modeModal.style.display = 'flex';
+    console.error('MP init failed', e);
+    MODE = 'ai';
+    return;
+  }
 
   // Room UI
   const modal = document.getElementById('modeModal');

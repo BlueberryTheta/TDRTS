@@ -28,8 +28,10 @@ export class MultiplayerClient {
             this.emit('error', msg);
           }
         };
-        this.ws.onerror = (e) => this.emit('ws_error', e);
+        this.ws.onerror = (e) => { this.emit('ws_error', e); reject(e); };
         this.ws.onclose = () => this.emit('close');
+        // Guard: timeout connection after 5s
+        setTimeout(() => { if (!this.ws || this.ws.readyState !== 1) reject(new Error('WS connect timeout')); }, 5000);
       } catch (e) { reject(e); }
     });
   }
@@ -41,4 +43,3 @@ export class MultiplayerClient {
   requestState() { this.send({ type: 'request_state' }); }
   action(msg) { this.send({ type: 'action', ...msg }); }
 }
-
