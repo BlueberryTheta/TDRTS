@@ -410,8 +410,9 @@ async function initMultiplayer() {
   const info = document.getElementById('mpInfo');
   const urlParams = new URLSearchParams(location.search);
   const roomFromUrl = urlParams.get('room');
-  mpClient.on('room', ({ roomId, player }) => {
-    dlog('Room joined', { roomId, player });
+  mpClient.on('room', ({ roomId, player, players }) => {
+    dlog('Room joined', { roomId, player, players });
+    window.mpPlayers = typeof players === 'number' ? players : window.mpPlayers;
     window.currentRoomId = roomId;
     // Show shareable URL
     if (info) {
@@ -426,6 +427,9 @@ async function initMultiplayer() {
   mpClient.on('snapshot', (msg) => { applySnapshot(msg); });
   mpClient.on('event', (msg) => { if (msg.action) applyActionLocal(msg.action, msg.player, /*remote*/true); if (typeof msg.currentPlayer === 'number') game.currentPlayer = msg.currentPlayer; });
   mpClient.on('request_state', () => { mpClient.snapshot(buildSnapshot()); });
+  if (typeof mpClient.on === 'function') {
+    mpClient.on('players', (n) => { dlog('Players update', n); window.mpPlayers = n; });
+  }
 
   if (roomFromUrl) mpClient.joinRoom(roomFromUrl); else wireMpControls();
 
