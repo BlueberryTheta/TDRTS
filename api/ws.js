@@ -36,12 +36,15 @@ function applyAction(room, player, msg) {
 }
 
 export default async function handler(req) {
+  try { console.log('[WS] handler start', req.url, 'upgrade=', req.headers.get('upgrade')); } catch {}
   if (req.headers.get('upgrade') !== 'websocket') {
+    try { console.log('[WS] non-upgrade request', req.url); } catch {}
     return new Response('Expected WebSocket', { status: 426 });
   }
   const { 0: client, 1: server } = new WebSocketPair();
   const ws = server;
   ws.accept();
+  try { console.log('[WS] accepted', req.url); } catch {}
 
   let roomId = null;
   let player = null;
