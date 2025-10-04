@@ -1,4 +1,4 @@
-export const config = { runtime: 'edge', regions: ['iad1'] };
+export const config = { runtime: 'edge' };
 export const runtime = 'edge';
 
 // In‑memory room store (ephemeral). For production, back with Vercel KV.
