@@ -10,11 +10,10 @@ export default async function handler(req) {
 
   // Enforce turn
   const turnActions = new Set(['spawn', 'buildFort', 'move', 'attack', 'endTurn']);
-  const current = getCurrentPlayer(roomId);
+  const current = await getCurrentPlayer(roomId);
   if (turnActions.has(action.kind) && player !== current) return Response.json({ error: 'Not your turn' }, { status: 403 });
-  if (action.kind === 'endTurn') setCurrentPlayer(roomId, (current + 1) % 2);
+  if (action.kind === 'endTurn') await setCurrentPlayer(roomId, (current + 1) % 2);
 
-  const evt = appendEvent(roomId, { type: 'event', player, action, currentPlayer: getCurrentPlayer(roomId) });
+  const evt = await appendEvent(roomId, { type: 'event', player, action, currentPlayer: await getCurrentPlayer(roomId) });
   return Response.json({ ok: true, event: evt });
 }
-

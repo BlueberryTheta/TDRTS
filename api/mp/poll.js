@@ -7,12 +7,11 @@ export default async function handler(req) {
   const roomId = searchParams.get('room');
   const since = Number(searchParams.get('since') || 0);
   if (!roomId) return new Response('Bad Request', { status: 400 });
-  const events = getEventsSince(roomId, since);
-  const payload = { events, currentPlayer: getCurrentPlayer(roomId) };
+  const events = await getEventsSince(roomId, since);
+  const payload = { events, currentPlayer: await getCurrentPlayer(roomId) };
   if (since === 0) {
-    const snap = getSnapshot(roomId);
+    const snap = await getSnapshot(roomId);
     if (snap) payload.snapshot = snap;
   }
   return Response.json(payload);
 }
-
