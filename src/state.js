@@ -6,7 +6,7 @@ export class GameState {
     this.h = height;
     this.turn = 1;
     this.currentPlayer = 0; // 0 or 1
-    this.income = 50;
+    this.income = 60; // per-turn income
     this.money = [100, 100];
 
     // Bases near opposite corners, shifted diagonally 1 toward center; flags start on bases
@@ -358,6 +358,10 @@ export class GameState {
     // Compute damage with bunker cover if target is a unit standing on friendly bunker
     const atkBonus = attacker.fort ? 0 : (rankForXP(attacker.xp || 0).level + this.getOfficerBonus(attacker)); // forts don't level
     let dmg = (attacker.atk || 0) + atkBonus;
+    // Engineer anti-tank bonus when attacking tanks
+    if (!target.fort && attacker.type === 'Engineer' && target.type === 'Tank') {
+      dmg += 2;
+    }
     if (!target.fort) {
       if (this.isFriendlyBunkerAt(target.x, target.y, target.player)) {
         dmg = Math.max(1, dmg - 2); // bunker cover reduces incoming damage by 2
@@ -400,7 +404,11 @@ export class GameState {
       if (!attacker.fort && attacker.type === 'Artillery' && distAT > 1) suppressCounter = true;
       if (!suppressCounter && !target.fort) {
         const defBonus = rankForXP(target.xp || 0).level + this.getOfficerBonus(target);
-        const counter = Math.max(0, (target.def || 0) + defBonus);
+        let counter = Math.max(0, (target.def || 0) + defBonus);
+        // Engineer anti-tank defensive bonus when engaged by tanks
+        if (target.type === 'Engineer' && !attacker.fort && attacker.type === 'Tank') {
+          counter += 2;
+        }
         if (counter > 0) {
           attacker.hp -= counter;
           try { attacker.hitUntil = (performance && performance.now ? performance.now() : Date.now()) + 200; } catch (_) { attacker.hitUntil = Date.now() + 200; }

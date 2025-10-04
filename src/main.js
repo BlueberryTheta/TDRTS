@@ -59,7 +59,6 @@ const UNIT_TO_FILE = {
   Infantry: 'assets/Infantry.png',
   Tank: 'assets/Tank.png',
   Artillery: 'assets/Artillery.png',
-  AntiTankGun: 'assets/Anti Tank Gun.png',
   Engineer: 'assets/Engineer.png',
   Officer: 'assets/Officer.png',
   Medic: 'assets/Medic.png',
@@ -93,6 +92,11 @@ function decorateShop() {
     const thumb = btn.querySelector('.thumb');
     if (thumb && path) {
       thumb.style.backgroundImage = `url('${path}')`;
+    }
+    const priceSpan = btn.querySelector('.price');
+    if (priceSpan) {
+      if (unitKey && UNIT_TYPES[unitKey]) priceSpan.textContent = `$${UNIT_TYPES[unitKey].cost}`;
+      if (fortKey && FORT_TYPES[fortKey]) priceSpan.textContent = `$${FORT_TYPES[fortKey].cost}`;
     }
   });
 }

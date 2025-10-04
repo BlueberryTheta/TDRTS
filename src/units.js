@@ -1,13 +1,12 @@
 export const UNIT_TYPES = {
   Infantry: { name: 'Infantry', hp: 10, atk: 4, def: 2, move: 3, range: 1, sight: 4, cost: 50, color: '#58a6ff' },
-  Tank: { name: 'Tank', hp: 18, atk: 7, def: 3, move: 2, range: 1, sight: 4, cost: 100, color: '#1f6feb' },
-  Artillery: { name: 'Artillery', hp: 12, atk: 5, def: 1, move: 1, range: 3, sight: 3, cost: 120, color: '#79c0ff' },
-  AntiTankGun: { name: 'AntiTankGun', hp: 12, atk: 6, def: 2, move: 1, range: 2, sight: 3, cost: 110, color: '#9ecbff' },
-  Engineer: { name: 'Engineer', hp: 10, atk: 3, def: 1, move: 3, range: 1, sight: 3, cost: 60, color: '#7ee787' },
-  Officer: { name: 'Officer', hp: 10, atk: 4, def: 2, move: 2, range: 2, sight: 3, cost: 80, color: '#a5d6ff' },
-  Medic: { name: 'Medic', hp: 8, atk: 1, def: 1, move: 3, range: 1, sight: 3, cost: 70, color: '#56d364' },
-  Scout: { name: 'Scout', hp: 8, atk: 2, def: 1, move: 4, range: 1, sight: 6, cost: 60, color: '#94e2ff' },
-  MechanizedInfantry: { name: 'MechanizedInfantry', hp: 14, atk: 5, def: 2, move: 3, range: 1, sight: 4, cost: 120, color: '#4aa3ff' },
+  Scout: { name: 'Scout', hp: 8, atk: 2, def: 1, move: 4, range: 1, sight: 6, cost: 70, color: '#94e2ff' },
+  Engineer: { name: 'Engineer', hp: 10, atk: 3, def: 1, move: 3, range: 1, sight: 3, cost: 80, color: '#7ee787' },
+  Medic: { name: 'Medic', hp: 8, atk: 1, def: 1, move: 3, range: 1, sight: 3, cost: 90, color: '#56d364' },
+  Officer: { name: 'Officer', hp: 10, atk: 4, def: 2, move: 2, range: 2, sight: 3, cost: 120, color: '#a5d6ff' },
+  MechanizedInfantry: { name: 'MechanizedInfantry', hp: 14, atk: 5, def: 2, move: 3, range: 1, sight: 4, cost: 160, color: '#4aa3ff' },
+  Tank: { name: 'Tank', hp: 18, atk: 7, def: 3, move: 2, range: 1, sight: 4, cost: 180, color: '#1f6feb' },
+  Artillery: { name: 'Artillery', hp: 12, atk: 5, def: 1, move: 1, range: 3, sight: 3, cost: 180, color: '#79c0ff' },
 };
 
 export function makeUnit(id, unitType, player, x, y) {
@@ -57,8 +56,7 @@ export const UNIT_ABILITIES = {
   Infantry: ['Generalist'],
   Tank: ['Armored'],
   Artillery: ['Long Range'],
-  AntiTankGun: ['Anti-Armor'],
-  Engineer: ['Build Fortifications'],
+  Engineer: ['Build Fortifications', 'Anti-Tank'],
   Officer: ['Leadership'],
   Medic: ['Field Medic'],
   Scout: ['Recon'],
