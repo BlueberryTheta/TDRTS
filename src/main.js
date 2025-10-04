@@ -392,13 +392,11 @@ async function initMultiplayer() {
       info.innerHTML = `<summary>Online Multiplayer</summary><div class="hint">Room: <strong>${roomId}</strong><br/>Share this link: <code>?mode=mp&room=${roomId}</code></div>`;
     }
     // If host, send initial snapshot
-    if (player === 0) {
-      mpClient.send({ type: 'snapshot', state: buildSnapshot() });
-    }
+    if (player === 0) mpClient.snapshot(buildSnapshot());
   });
   mpClient.on('snapshot', (msg) => { applySnapshot(msg); });
   mpClient.on('event', (msg) => { if (msg.action) applyActionLocal(msg.action, msg.player, /*remote*/true); if (typeof msg.currentPlayer === 'number') game.currentPlayer = msg.currentPlayer; });
-  mpClient.on('request_state', () => { mpClient.send({ type: 'snapshot', state: buildSnapshot() }); });
+  mpClient.on('request_state', () => { mpClient.snapshot(buildSnapshot()); });
 
   if (roomFromUrl) mpClient.joinRoom(roomFromUrl); else await mpClient.createRoom();
 

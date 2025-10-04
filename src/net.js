@@ -54,6 +54,7 @@ export class MultiplayerClient {
   joinRoom(roomId) { if (this.debug) console.log('[MP] joinRoom', roomId); this.send({ type: 'join', roomId }); }
   requestState() { if (this.debug) console.log('[MP] request_state'); this.send({ type: 'request_state' }); }
   action(msg) { if (this.debug) console.log('[MP] action', msg); this.send({ type: 'action', ...msg }); }
+  snapshot(state) { if (this.debug) console.log('[MP] snapshot'); this.send({ type: 'snapshot', state }); }
 }
 
 // HTTP long-poll fallback client
@@ -83,6 +84,9 @@ export class HttpMPClient {
     const res = await fetch('/api/mp/action', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ roomId: this.roomId, player: this.player, action: msg }) });
     const data = await res.json(); if(data.error) { this.dlog('action error', data.error); return; }
     // event will be picked up by poller; nothing else to do
+  }
+  async snapshot(state){
+    await fetch('/api/mp/snapshot', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ roomId: this.roomId, state }) });
   }
   async startPolling(){ if(this.polling) return; this.polling = true; this.dlog('polling start');
     const loop = async () => {
