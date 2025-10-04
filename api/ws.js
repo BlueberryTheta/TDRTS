@@ -45,10 +45,12 @@ function applyAction(room, player, msg) {
 
   switch (msg.kind) {
     case 'endTurn':
+      console.log('[WS] endTurn by', player);
       g.endTurn();
       break;
     case 'spawn': {
       const { spawnType, unitType, fortType, x, y } = msg;
+      console.log('[WS] spawn', { player, spawnType, unitType, fortType, x, y });
       if (spawnType === 'unit') {
         const ut = UNIT_TYPES[unitType]; if (!ut) break;
         g.currentPlayer = player; g.queueSpawn(ut); g.trySpawnAt(x, y);
@@ -60,18 +62,21 @@ function applyAction(room, player, msg) {
     }
     case 'buildFort': {
       const { fortType, engineerId, x, y } = msg;
+      console.log('[WS] buildFort', { player, fortType, engineerId, x, y });
       const ft = FORT_TYPES[fortType]; if (!ft) break;
       g.currentPlayer = player; g.selectedId = engineerId; g.queueFortBuild(ft); g.tryBuildAt(x, y);
       break;
     }
     case 'move': {
       const { unitId, x, y } = msg;
+      console.log('[WS] move', { player, unitId, x, y });
       const u = g.getUnitById(unitId); if (!u || u.player !== player) break;
       g.moveUnitTo(u, x, y); g.checkFlagCapture(u);
       break;
     }
     case 'attack': {
       const { attackerId, x, y } = msg;
+      console.log('[WS] attack', { player, attackerId, x, y });
       const a = g.getUnitById(attackerId); if (!a || a.player !== player) break;
       const enemy = g.getEnemyAt(x, y) || g.getFortAt(x, y); if (!enemy) break;
       g.attack(a, enemy);
@@ -101,6 +106,7 @@ export default async function handler(req) {
       const room = { game, sockets: new Set([ws]), players: new Map([[ws, 0]]) };
       rooms.set(roomId, room);
       player = 0;
+      console.log('[WS] create room', roomId, 'player', player);
       ws.send(JSON.stringify({ type: 'room', roomId, player }));
       ws.send(JSON.stringify(snapshot(game)));
     } else if (msg.type === 'join') {
@@ -109,12 +115,15 @@ export default async function handler(req) {
       if (room.players.size >= 2) { ws.send(JSON.stringify({ type: 'error', message: 'Room full' })); return; }
       roomId = msg.roomId; player = 1;
       room.sockets.add(ws); room.players.set(ws, 1);
+      console.log('[WS] join room', roomId, 'player', player);
       ws.send(JSON.stringify({ type: 'room', roomId, player }));
       broadcast(room, snapshot(room.game));
     } else if (msg.type === 'request_state') {
+      console.log('[WS] request_state', roomId);
       const room = rooms.get(roomId); if (!room) return;
       ws.send(JSON.stringify(snapshot(room.game)));
     } else if (msg.type === 'action') {
+      console.log('[WS] action', msg.kind, 'by', player);
       const room = rooms.get(roomId); if (!room) return;
       applyAction(room, player, msg);
       broadcast(room, snapshot(room.game));
@@ -122,6 +131,7 @@ export default async function handler(req) {
   });
 
   ws.addEventListener('close', () => {
+    console.log('[WS] close', roomId, 'player', player);
     if (!roomId) return;
     const room = rooms.get(roomId); if (!room) return;
     room.sockets.delete(ws); room.players.delete(ws);
@@ -130,4 +140,3 @@ export default async function handler(req) {
 
   return new Response(null, { status: 101, webSocket: client });
 }
-

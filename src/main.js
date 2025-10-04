@@ -58,6 +58,8 @@ loadBackgroundSequential([
 
 // Determine mode (ai or mp) via URL or landing modal
 let MODE = (new URLSearchParams(location.search)).get('mode');
+const DEBUG = (() => { try { return (window.DEBUG === true) || (new URLSearchParams(location.search).get('debug') === '1'); } catch { return false; } })();
+function dlog(...args) { if (DEBUG) console.log('[APP]', ...args); }
 let mpClient = null; // multiplayer client instance when in MP mode
 
 // --- Load unit/fort images ---
@@ -131,6 +133,7 @@ const playOnlineBtn = document.getElementById('playOnline');
 function setMode(m) {
   MODE = m;
   if (modeModal) modeModal.style.display = 'none';
+  dlog('Mode set to', MODE);
   if (MODE === 'ai') {
     // If it's AI's turn (player 2) for any reason, run AI
     maybeRunAI();
@@ -148,6 +151,7 @@ if (playVsAiBtn) playVsAiBtn.onclick = () => setMode('ai');
 if (playOnlineBtn) playOnlineBtn.onclick = () => setMode('mp');
 
 function updateUI() {
+  // avoid noisy per-frame logs; show when major fields change (optional: could be expanded)
   ui.currentPlayer.textContent = String(game.currentPlayer + 1);
   ui.money.textContent = String(game.money[game.currentPlayer]);
   ui.turn.textContent = String(game.turn);
@@ -308,6 +312,7 @@ function showGameOver() {
 // --- Multiplayer wiring ---
 function applySnapshot(snap) {
   const s = snap.state;
+  dlog('Apply snapshot', { turn: s.turn, currentPlayer: s.currentPlayer, units: s.units?.length, forts: s.forts?.length, flags: s.flags });
   // Replace mutable fields
   game.w = s.w; game.h = s.h;
   game.turn = s.turn; game.currentPlayer = s.currentPlayer;
@@ -320,10 +325,12 @@ function applySnapshot(snap) {
 async function initMultiplayer() {
   const defaultWs = ((location.protocol === 'https:') ? 'wss://' : 'ws://') + location.host + '/api/ws';
   const wsUrl = (window.WS_URL || localStorage.getItem('WS_URL') || defaultWs);
+  dlog('MP init', { wsUrl });
   const { MultiplayerClient } = await import('./net.js');
   mpClient = new MultiplayerClient(wsUrl);
   try {
     await mpClient.connect();
+    dlog('MP connected');
   } catch (e) {
     // Show mode modal with error and allow falling back
     const modeModal = document.getElementById('modeModal');
@@ -341,6 +348,7 @@ async function initMultiplayer() {
   const urlParams = new URLSearchParams(location.search);
   const roomFromUrl = urlParams.get('room');
   mpClient.on('room', ({ roomId, player }) => {
+    dlog('Room joined', { roomId, player });
     // Show shareable URL
     if (info) {
       info.innerHTML = `<summary>Online Multiplayer</summary><div class="hint">Room: <strong>${roomId}</strong><br/>Share this link: <code>?mode=mp&room=${roomId}</code></div>`;
@@ -363,19 +371,23 @@ async function initMultiplayer() {
   const hooks = {
     spawn: ({ kind, unitType, fortType, x, y }) => {
       if (game.currentPlayer !== mpClient.player) return;
+      dlog('HOOK spawn', { kind, unitType, fortType, x, y });
       const spawnType = kind; // 'unit' or 'fort'
       mpClient.action({ kind: 'spawn', spawnType, unitType, fortType, x, y });
     },
     buildFort: (fortType, engineerId, x, y) => {
       if (game.currentPlayer !== mpClient.player) return;
+      dlog('HOOK buildFort', { fortType, engineerId, x, y });
       mpClient.action({ kind: 'buildFort', fortType, engineerId, x, y });
     },
     move: (unitId, x, y) => {
       if (game.currentPlayer !== mpClient.player) return;
+      dlog('HOOK move', { unitId, x, y });
       mpClient.action({ kind: 'move', unitId, x, y });
     },
     attack: (attackerId, x, y) => {
       if (game.currentPlayer !== mpClient.player) return;
+      dlog('HOOK attack', { attackerId, x, y });
       mpClient.action({ kind: 'attack', attackerId, x, y });
     },
   };
