@@ -1,4 +1,5 @@
-export const config = { runtime: 'edge' };
+export const config = { runtime: 'edge', regions: ['iad1'] };
+export const runtime = 'edge';
 
 import { GameState } from '../src/state.js';
 import { UNIT_TYPES, FORT_TYPES } from '../src/units.js';
