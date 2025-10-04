@@ -58,6 +58,7 @@ loadBackgroundSequential([
 
 // Determine mode (ai or mp) via URL or landing modal
 let MODE = (new URLSearchParams(location.search)).get('mode');
+let mpClient = null; // multiplayer client instance when in MP mode
 
 // --- Load unit/fort images ---
 const assets = new AssetStore(TILE_SIZE);
