@@ -406,8 +406,16 @@ async function initMultiplayer() {
   const preferHttp = !isLocal && !forceWS;
   dlog('MP init', { wsUrl, host: location.hostname, forceWS, preferHttp });
   const { MultiplayerClient, HttpMPClient } = await import('./net.js');
+  // Probe HTTP backend availability quickly
+  async function httpAvailable() {
+    try {
+      const res = await fetch(`/api/mp/poll?room=__health__&since=0`, { cache: 'no-store' });
+      return res.ok;
+    } catch { return false; }
+  }
 
-  if (preferHttp) {
+  let useHttp = preferHttp && (await httpAvailable());
+  if (useHttp) {
     mpClient = new HttpMPClient(location.origin);
     await mpClient.connect();
     window.MP_TRANSPORT = 'http';
@@ -419,10 +427,13 @@ async function initMultiplayer() {
       window.MP_TRANSPORT = 'ws';
     } catch (e) {
       console.error('MP WS connect failed, falling back to HTTP', e);
-      // Fallback to HTTP MP
-      mpClient = new HttpMPClient(location.origin);
-      await mpClient.connect();
-      window.MP_TRANSPORT = 'http';
+      if (await httpAvailable()) {
+        mpClient = new HttpMPClient(location.origin);
+        await mpClient.connect();
+        window.MP_TRANSPORT = 'http';
+      } else {
+        window.MP_TRANSPORT = 'unavailable';
+      }
     }
   }
 
@@ -438,7 +449,9 @@ async function initMultiplayer() {
     // Show shareable URL
     if (info) {
       const using = (typeof window.MP_TRANSPORT === 'string') ? window.MP_TRANSPORT : 'unknown';
-      info.innerHTML = `<summary>Online Multiplayer</summary><div class="hint">Room: <strong>${roomId}</strong><br/>Share this link: <code>?mode=mp&room=${roomId}</code><br/>Transport: <strong>${using.toUpperCase()}</strong></div>`;
+      let extra = '';
+      if (using === 'unavailable') extra = `<div class="hint" style="color:#f85149">Multiplayer backend unavailable. Configure Neon/Postgres or force WebSocket for testing.</div>`;
+      info.innerHTML = `<summary>Online Multiplayer</summary><div class="hint">Room: <strong>${roomId}</strong><br/>Share this link: <code>?mode=mp&room=${roomId}</code><br/>Transport: <strong>${using.toUpperCase()}</strong></div>${extra}`;
     }
     // If host, send initial snapshot
     if (player === 0) mpClient.snapshot(buildSnapshot());

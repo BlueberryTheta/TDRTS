@@ -1,4 +1,13 @@
+const HANDLERS_KEY = '__tdrtsHandlers';
+
 export function attachInput(canvas, tileSize, game, hooks) {
+  // Remove prior handlers to avoid duplicate interactions when reattaching (e.g., switching to MP)
+  const prev = canvas[HANDLERS_KEY];
+  if (prev && prev.click && prev.pointerdown) {
+    try { canvas.removeEventListener('click', prev.click); } catch {}
+    try { canvas.removeEventListener('pointerdown', prev.pointerdown, { passive: false }); } catch {}
+  }
+
   const computeTile = (clientX, clientY) => {
     const rect = canvas.getBoundingClientRect();
     const cx = clientX - rect.left;
@@ -93,14 +102,16 @@ export function attachInput(canvas, tileSize, game, hooks) {
     }
   };
 
-  canvas.addEventListener('click', (e) => {
-    onPoint(e.clientX, e.clientY);
-  });
-
-  canvas.addEventListener('pointerdown', (e) => {
+  const onClick = (e) => { onPoint(e.clientX, e.clientY); };
+  const onPointerDown = (e) => {
     if (e.pointerType === 'touch' || e.pointerType === 'pen') {
       e.preventDefault();
       onPoint(e.clientX, e.clientY);
     }
-  }, { passive: false });
+  };
+
+  canvas.addEventListener('click', onClick);
+  canvas.addEventListener('pointerdown', onPointerDown, { passive: false });
+
+  canvas[HANDLERS_KEY] = { click: onClick, pointerdown: onPointerDown };
 }

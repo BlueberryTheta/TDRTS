@@ -95,7 +95,7 @@ li { margin: 4px 0; }
 .banner { display: flex; align-items: center; gap: 10px; margin: 6px 8px; padding: 6px 10px; background: linear-gradient(180deg, var(--panel-olive), var(--panel-olive-2)); border: 1px solid #20261f; border-radius: 10px; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.35); }
 
 /* MP controls */
-.mp-grid { display: grid; grid-template-columns: repeat(2, minmax(220px, 1fr)); gap: 12px; }
+.mp-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
 .mp-card { background: rgba(0,0,0,0.2); border: 1px solid rgba(0,0,0,0.35); border-radius: 10px; padding: 10px; }
 .input { background: #0f1419; color: var(--text); border: 1px solid #30363d; border-radius: 6px; padding: 6px 8px; min-width: 140px; }
 
@@ -132,4 +132,9 @@ details.accordion[open] > summary::after { content: '▾'; }
 
 /* Modal overlay */
 .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; z-index: 999; }
-.modal-content { max-width: 360px; width: 90%; text-align: center; }
+.modal-content { max-width: 640px; width: 90%; text-align: center; }
+
+/* Make MP grid two columns when modal is wide enough */
+@media (min-width: 540px) {
+  .mp-grid { grid-template-columns: repeat(2, minmax(220px, 1fr)); }
+}
