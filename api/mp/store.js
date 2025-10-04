@@ -19,12 +19,14 @@ async function kvSet(key, val) { if (!kv) return; try { await kv.set(key, val); 
 export async function getOrCreateRoom(id) {
   if (!id) id = rnd();
   if (hasNeon()) {
-    await initTables();
-    let room = await getRoom(id);
-    if (!room) room = await createRoomRow(id);
-    // Normalize names between SQL and JS
-    return { id: room.id, players: Number(room.players), currentPlayer: Number(room.current_player), lastSnapshot: room.last_snapshot, seq: Number(room.seq) };
-  } else {
+    try {
+      await initTables();
+      let room = await getRoom(id);
+      if (!room) room = await createRoomRow(id);
+      if (room) return { id: room.id, players: Number(room.players), currentPlayer: Number(room.current_player), lastSnapshot: room.last_snapshot, seq: Number(room.seq) };
+    } catch {}
+  }
+  {
     if (!memRooms.has(id)) memRooms.set(id, { id, currentPlayer: 0, lastSnapshot: null, events: [], seq: 0, players: 0 });
     return memRooms.get(id);
   }
@@ -34,13 +36,16 @@ export async function createRoom() { return await getOrCreateRoom(null); }
 
 export async function joinRoom(roomId) {
   if (hasNeon()) {
-    let room = await getOrCreateRoom(roomId);
-    if (room.players >= 2) return { error: 'Room full' };
-    const player = room.players;
-    room.players += 1;
-    await upsertRoom({ id: room.id, players: room.players, current_player: room.currentPlayer, last_snapshot: room.lastSnapshot, seq: room.seq });
-    return { room, player };
-  } else {
+    try {
+      let room = await getOrCreateRoom(roomId);
+      if (room.players >= 2) return { error: 'Room full' };
+      const player = room.players;
+      room.players += 1;
+      await upsertRoom({ id: room.id, players: room.players, current_player: room.currentPlayer, last_snapshot: room.lastSnapshot, seq: room.seq });
+      return { room, player };
+    } catch {}
+  }
+  {
     const room = await getOrCreateRoom(roomId);
     if (room.players >= 2) return { error: 'Room full' };
     const player = room.players; room.players += 1;
@@ -50,12 +55,15 @@ export async function joinRoom(roomId) {
 
 export async function appendEvent(roomId, evt) {
   if (hasNeon()) {
-    const room = await getOrCreateRoom(roomId);
-    const seq = await nextSeq(room.id);
-    const withSeq = { ...evt, seq };
-    await appendEventRow(room.id, seq, withSeq);
-    return withSeq;
-  } else {
+    try {
+      const room = await getOrCreateRoom(roomId);
+      const seq = await nextSeq(room.id);
+      const withSeq = { ...evt, seq };
+      await appendEventRow(room.id, seq, withSeq);
+      return withSeq;
+    } catch {}
+  }
+  {
     const room = await getOrCreateRoom(roomId);
     room.seq += 1; const withSeq = { ...evt, seq: room.seq };
     room.events.push(withSeq); if (room.events.length > 500) room.events.splice(0, room.events.length - 500);
@@ -65,8 +73,9 @@ export async function appendEvent(roomId, evt) {
 
 export async function getEventsSince(roomId, since) {
   if (hasNeon()) {
-    return await listEventsSince(roomId, since);
-  } else {
+    try { return await listEventsSince(roomId, since); } catch {}
+  }
+  {
     const room = await getOrCreateRoom(roomId);
     return room.events.filter(e => e.seq > since);
   }
@@ -74,9 +83,13 @@ export async function getEventsSince(roomId, since) {
 
 export async function setSnapshot(roomId, state) {
   if (hasNeon()) {
-    const room = await getOrCreateRoom(roomId);
-    await upsertRoom({ id: room.id, players: room.players, current_player: room.currentPlayer, last_snapshot: state, seq: room.seq });
-  } else {
+    try {
+      const room = await getOrCreateRoom(roomId);
+      await upsertRoom({ id: room.id, players: room.players, current_player: room.currentPlayer, last_snapshot: state, seq: room.seq });
+      return;
+    } catch {}
+  }
+  {
     const room = await getOrCreateRoom(roomId);
     room.lastSnapshot = state;
   }
@@ -84,9 +97,9 @@ export async function setSnapshot(roomId, state) {
 
 export async function getSnapshot(roomId) {
   if (hasNeon()) {
-    const room = await getOrCreateRoom(roomId);
-    return room.lastSnapshot;
-  } else {
+    try { const room = await getOrCreateRoom(roomId); return room.lastSnapshot; } catch {}
+  }
+  {
     const room = await getOrCreateRoom(roomId);
     return room.lastSnapshot;
   }
@@ -94,9 +107,13 @@ export async function getSnapshot(roomId) {
 
 export async function setCurrentPlayer(roomId, cp) {
   if (hasNeon()) {
-    const room = await getOrCreateRoom(roomId);
-    await upsertRoom({ id: room.id, players: room.players, current_player: cp, last_snapshot: room.lastSnapshot, seq: room.seq });
-  } else {
+    try {
+      const room = await getOrCreateRoom(roomId);
+      await upsertRoom({ id: room.id, players: room.players, current_player: cp, last_snapshot: room.lastSnapshot, seq: room.seq });
+      return;
+    } catch {}
+  }
+  {
     const room = await getOrCreateRoom(roomId);
     room.currentPlayer = cp;
   }
@@ -104,9 +121,9 @@ export async function setCurrentPlayer(roomId, cp) {
 
 export async function getCurrentPlayer(roomId) {
   if (hasNeon()) {
-    const room = await getOrCreateRoom(roomId);
-    return room.currentPlayer;
-  } else {
+    try { const room = await getOrCreateRoom(roomId); return room.currentPlayer; } catch {}
+  }
+  {
     const room = await getOrCreateRoom(roomId);
     return room.currentPlayer;
   }
