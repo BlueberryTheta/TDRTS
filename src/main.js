@@ -317,7 +317,8 @@ function applySnapshot(snap) {
 }
 
 async function initMultiplayer() {
-  const wsUrl = (window.WS_URL || localStorage.getItem('WS_URL') || 'ws://localhost:8080');
+  const defaultWs = ((location.protocol === 'https:') ? 'wss://' : 'ws://') + location.host + '/api/ws';
+  const wsUrl = (window.WS_URL || localStorage.getItem('WS_URL') || defaultWs);
   const { MultiplayerClient } = await import('./net.js');
   mpClient = new MultiplayerClient(wsUrl);
   await mpClient.connect();
