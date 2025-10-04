@@ -21,6 +21,11 @@ const ui = {
   turn: document.getElementById('turn'),
   shop: document.getElementById('shop'),
   endTurn: document.getElementById('endTurn'),
+  // Top HUD (mobile)
+  currentPlayerTop: document.getElementById('currentPlayerTop'),
+  moneyTop: document.getElementById('moneyTop'),
+  turnTop: document.getElementById('turnTop'),
+  endTurnTop: document.getElementById('endTurnTop'),
 };
 
 const game = new GameState(GRID_W, GRID_H);
@@ -70,6 +75,7 @@ const FORT_TO_FILE = {
   Pillbox: 'assets/Pill Box.png',
   Bunker: 'assets/Bunker.png',
   BarbedWire: 'assets/Barbed Wire.png',
+  SupplyDepot: 'assets/Supply Depot.png',
 };
 
 const MISC_ASSETS = {
@@ -118,6 +124,9 @@ function updateUI() {
   ui.currentPlayer.textContent = String(game.currentPlayer + 1);
   ui.money.textContent = String(game.money[game.currentPlayer]);
   ui.turn.textContent = String(game.turn);
+  if (ui.currentPlayerTop) ui.currentPlayerTop.textContent = String(game.currentPlayer + 1);
+  if (ui.moneyTop) ui.moneyTop.textContent = String(game.money[game.currentPlayer]);
+  if (ui.turnTop) ui.turnTop.textContent = String(game.turn);
   // Selected unit panel
   const info = document.getElementById('unitInfo');
   const none = document.getElementById('unitNone');
@@ -201,6 +210,12 @@ ui.endTurn.addEventListener('click', () => {
   game.endTurn();
   maybeRunAI();
 });
+if (ui.endTurnTop) {
+  ui.endTurnTop.addEventListener('click', () => {
+    game.endTurn();
+    maybeRunAI();
+  });
+}
 
 // Input handling (canvas clicks)
 attachInput(canvas, TILE_SIZE, game);

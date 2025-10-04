@@ -6,8 +6,8 @@ export class GameState {
     this.h = height;
     this.turn = 1;
     this.currentPlayer = 0; // 0 or 1
-    this.income = 60; // per-turn income
-    this.money = [100, 100];
+    this.income = 10; // per-turn income
+    this.money = [500, 500];
 
     // Bases near opposite corners, shifted diagonally 1 toward center; flags start on bases
     this.bases = [ { x: 1, y: 1 }, { x: this.w - 2, y: this.h - 2 } ];
@@ -246,8 +246,11 @@ export class GameState {
     this.pillboxAutoFire();
     // Medics heal nearby friendlies
     this.medicAutoHeal();
-    // Income
-    this.money[(this.currentPlayer + 1) % 2] += this.income;
+    // Income (base income + SupplyDepot yield for the next player)
+    const nextPlayer = (this.currentPlayer + 1) % 2;
+    const supplyCount = this.forts.filter(f => f.type === 'SupplyDepot' && f.player === nextPlayer).length;
+    const supplyIncome = supplyCount * 5; // each depot yields $5/turn
+    this.money[nextPlayer] += this.income + supplyIncome;
     // Next player
     this.currentPlayer = (this.currentPlayer + 1) % 2;
     if (this.currentPlayer === 0) this.turn += 1;
