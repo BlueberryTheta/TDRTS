@@ -477,6 +477,7 @@ async function initMultiplayer() {
     dlog('Room joined', { roomId, player, players });
     window.mpPlayers = typeof players === 'number' ? players : window.mpPlayers;
     window.currentRoomId = roomId;
+    try { window.MY_PLAYER = player; } catch {}
     // Show shareable URL
     if (info) {
       const using = (typeof window.MP_TRANSPORT === 'string') ? window.MP_TRANSPORT : 'unknown';

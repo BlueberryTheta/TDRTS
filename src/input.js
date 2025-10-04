@@ -72,7 +72,8 @@ export function attachInput(canvas, tileSize, game, hooks) {
     if ((enemy || (fort && fort.player !== game.currentPlayer)) && !sel.acted) {
       // Require visibility of target tile for player interactions,
       // except allow Artillery to target tiles spotted by a friendly Scout.
-      const visible = game.isTileVisibleTo(game.currentPlayer, x, y);
+      const viewer = (typeof window !== 'undefined' && typeof window.MY_PLAYER === 'number') ? window.MY_PLAYER : game.currentPlayer;
+      const visible = game.isTileVisibleTo(viewer, x, y);
       const spottedForArtillery = sel.type === 'Artillery' && game.hasFriendlyScoutNearTile(x, y, sel.player, 5);
       if (!visible && !spottedForArtillery) return;
       const atkTiles = game.getAttackableTiles(sel);

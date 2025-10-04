@@ -107,20 +107,20 @@ export class HttpMPClient {
         const url = `/api/mp/poll?room=${encodeURIComponent(this.roomId)}&since=${this.seq}`;
         const res = await fetch(url, { headers:{ 'Cache-Control':'no-cache' } });
         const data = await res.json();
-        if (Array.isArray(data.events)) {
+        const hasEvents = Array.isArray(data.events) && data.events.length > 0;
+        if (hasEvents) {
           for (const evt of data.events) {
             this.seq = Math.max(this.seq, evt.seq || 0);
             this.dlog('recv event', evt.seq, evt.action?.kind, 'by', evt.player, 'cp=', evt.currentPlayer);
             if (evt.type === 'event') this.emit('event', evt);
           }
         }
-        // Always inform client of currentPlayer even if no events (helps UI turn sync)
-        if (typeof data.currentPlayer === 'number') {
+        // Inform client of currentPlayer only when no events to avoid overriding fresh event state
+        if (!hasEvents && typeof data.currentPlayer === 'number') {
           this.emit('event', { type:'event', player: null, seq: this.seq, currentPlayer: data.currentPlayer });
         }
         // Emit snapshot after events to avoid overriding fresh event-applied state.
-        const hadEvents = Array.isArray(data.events) && data.events.length > 0;
-        if (data.snapshot && (!hadEvents || this.seq === 0)) {
+        if (data.snapshot && (!hasEvents || this.seq === 0)) {
           this.emit('snapshot', { type:'snapshot', state: data.snapshot });
         }
         if (typeof data.players === 'number') this.emit('players', data.players);

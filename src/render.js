@@ -7,6 +7,16 @@ export class Renderer {
     this.assets = null; // optional AssetStore
   }
 
+  // Determine which player's perspective to render from.
+  // In MP, always use local player's index if available (window.MY_PLAYER),
+  // otherwise fall back to current turn holder for hot-seat.
+  viewPlayer() {
+    try {
+      if (typeof window !== 'undefined' && typeof window.MY_PLAYER === 'number') return window.MY_PLAYER;
+    } catch {}
+    return this.game.currentPlayer;
+  }
+
   drawBackground() {
     const { ctx, T } = this;
     const W = this.game.w * T;
@@ -86,9 +96,9 @@ export class Renderer {
       let { x, y } = flag;
       const carrier = flag.carriedBy ? this.game.getUnitById(flag.carriedBy) : null;
       if (carrier) { x = carrier.x; y = carrier.y; }
-      // Show enemy flag only if visible to current player; always show your own flag
-      const current = this.game.currentPlayer;
-      if (i === current || this.game.isTileVisibleTo(current, x, y)) {
+      // Show enemy flag only if visible to the viewing player; always show your own flag
+      const viewer = this.viewPlayer();
+      if (i === viewer || this.game.isTileVisibleTo(viewer, x, y)) {
         this.drawFlag(x, y, i);
       }
     }
@@ -97,9 +107,9 @@ export class Renderer {
   drawForts() {
     const { ctx, T } = this;
     for (const f of this.game.forts) {
-      // Hide enemy forts in fog
-      const current = this.game.currentPlayer;
-      if (f.player !== current && !this.game.isTileVisibleTo(current, f.x, f.y)) continue;
+      // Hide enemy forts in fog from viewer's perspective
+      const viewer = this.viewPlayer();
+      if (f.player !== viewer && !this.game.isTileVisibleTo(viewer, f.x, f.y)) continue;
       ctx.save();
       ctx.translate(f.x * T, f.y * T);
       const pad = 6;
@@ -191,9 +201,9 @@ export class Renderer {
     const dbg = (typeof window !== 'undefined' && window.DEBUG === true);
     let drawn = 0, hidden = 0;
     for (const u of this.game.units) {
-      // Hide enemy units in fog
-      const current = this.game.currentPlayer;
-      if (!dbg && u.player !== current && !this.game.isTileVisibleTo(current, u.x, u.y)) { hidden++; continue; }
+      // Hide enemy units in fog from viewer's perspective
+      const viewer = this.viewPlayer();
+      if (!dbg && u.player !== viewer && !this.game.isTileVisibleTo(viewer, u.x, u.y)) { hidden++; continue; }
       ctx.save();
       // Shake effect if recently hit
       let shakeX = 0, shakeY = 0;
@@ -308,7 +318,7 @@ export class Renderer {
     const { ctx, T } = this;
     const dbg = (typeof window !== 'undefined' && window.DEBUG === true);
     if (dbg) return; // disable fog overlay in debug mode
-    const current = this.game.currentPlayer;
+    const current = this.viewPlayer();
     // Ensure visibility is up to date
     if (typeof this.game.recomputeVisibility === 'function') this.game.recomputeVisibility();
     const vis = this.game.visibility[current] || new Set();
