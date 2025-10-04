@@ -18,10 +18,11 @@ export default async function handler(req) {
     try { console.log('[MP/POLL] room=', roomId, 'since=', since); } catch {}
     const events = await getEventsSince(roomId, since);
     const payload = { events, currentPlayer: await getCurrentPlayer(roomId), players: await getPlayers(roomId) };
-    if (since === 0) {
-      const snap = await getSnapshot(roomId);
-      if (snap) payload.snapshot = snap;
-    }
+    // Always include the latest snapshot to guarantee eventual consistency
+    const snap = await getSnapshot(roomId);
+    if (snap) payload.snapshot = snap;
+    // Report the last seq available in this response for debugging
+    if (Array.isArray(events) && events.length) payload.lastSeq = events[events.length - 1].seq;
     return json(payload);
   } catch (e) {
     try { console.error('[MP/POLL] error', e?.message || e); } catch {}
