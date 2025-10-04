@@ -22,12 +22,6 @@ export function attachInput(canvas, tileSize, game, hooks) {
     // Recompute visibility for accurate fog interactions
     if (typeof game.recomputeVisibility === 'function') game.recomputeVisibility();
     const { x, y } = computeTile(clientX, clientY);
-    try {
-      if ((typeof window !== 'undefined' && window.DEBUG === true) || (new URLSearchParams(location.search).get('debug') === '1')) {
-        const sel = game.getUnitById(game.selectedId);
-        console.log('[INPUT] click', { x, y, selected: sel ? { id: sel.id, type: sel.type, p: sel.player, x: sel.x, y: sel.y, moved: sel.moved, acted: sel.acted } : null, spawnQueue: game.spawnQueue, buildQueue: game.buildQueue });
-      }
-    } catch {}
 
     // If an engineer build is queued, try to build here first
     if (game.buildQueue) {
@@ -53,7 +47,6 @@ export function attachInput(canvas, tileSize, game, hooks) {
         return;
       } else {
         const spawned = game.trySpawnAt(x, y);
-        try { if ((typeof window !== 'undefined' && window.DEBUG === true) || (new URLSearchParams(location.search).get('debug') === '1')) console.log('[INPUT] local spawn result', { spawned, x, y }); } catch {}
         if (spawned) return; // done
         // If invalid, fall through to normal handling (to allow selection)
       }
@@ -88,8 +81,7 @@ export function attachInput(canvas, tileSize, game, hooks) {
         if (hooks && typeof hooks.attack === 'function') {
           hooks.attack(sel.id, x, y);
         } else {
-          const res = game.attack(sel, enemy || fort);
-          try { if ((typeof window !== 'undefined' && window.DEBUG === true) || (new URLSearchParams(location.search).get('debug') === '1')) console.log('[INPUT] local attack', { ok: res, attacker: sel.id, target: enemy ? enemy.id : fort?.id }); } catch {}
+          game.attack(sel, enemy || fort);
         }
         return;
       }
@@ -105,7 +97,6 @@ export function attachInput(canvas, tileSize, game, hooks) {
           const ok = game.moveUnitTo(sel, x, y);
           // If carrying flag and on base, check capture now
           game.checkFlagCapture(sel);
-          try { if ((typeof window !== 'undefined' && window.DEBUG === true) || (new URLSearchParams(location.search).get('debug') === '1')) console.log('[INPUT] local move', { ok, id: sel.id, to: { x, y } }); } catch {}
         }
         return;
       }

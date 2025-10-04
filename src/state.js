@@ -1,9 +1,7 @@
 import { UNIT_TYPES, makeUnit, FORT_TYPES, makeFort, rankForXP } from './units.js';
-
-function DBG() {
-  try { return (typeof window !== 'undefined' && window.DEBUG === true) || (new URLSearchParams(location.search).get('debug') === '1'); } catch { return false; }
-}
-function slog(...args) { if (DBG()) console.log('[STATE]', ...args); }
+// Disable verbose state logs (no-op helpers)
+const DBG = () => false;
+function slog() {}
 
 export class GameState {
   constructor(width, height) {

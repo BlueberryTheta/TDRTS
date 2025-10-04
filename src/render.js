@@ -199,7 +199,7 @@ export class Renderer {
   drawUnits() {
     const { ctx, T } = this;
     const dbg = (typeof window !== 'undefined' && window.DEBUG === true);
-    let drawn = 0, hidden = 0;
+    let hidden = 0;
     for (const u of this.game.units) {
       // Hide enemy units in fog from viewer's perspective
       const viewer = this.viewPlayer();
@@ -288,16 +288,6 @@ export class Renderer {
         ctx.restore();
       }
       ctx.restore();
-      drawn++;
-    }
-    if (dbg) {
-      try {
-        const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
-        if (!window.__dbgRU || now > window.__dbgRU) {
-          window.__dbgRU = now + 1500;
-          console.log('[RENDER] units drawn=', drawn, 'hidden=', hidden, 'total=', this.game.units.length, 'cp=', this.game.currentPlayer);
-        }
-      } catch {}
     }
   }
 

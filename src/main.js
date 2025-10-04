@@ -227,23 +227,6 @@ function updateUI() {
       }
     }
   }
-  // Periodic debug summary (throttled)
-  if (DEBUG) {
-    const nowTS = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
-    if (!window.__dbgNext || nowTS >= window.__dbgNext) {
-      window.__dbgNext = nowTS + 1500;
-      const total = game.units.length;
-      const p0 = game.units.filter(u => u.player === 0).length;
-      const p1 = total - p0;
-      let visCount = 0;
-      try {
-        if (typeof game.recomputeVisibility === 'function') game.recomputeVisibility();
-        const cur = game.currentPlayer;
-        for (const u of game.units) if (u.player === cur || game.isTileVisibleTo(cur, u.x, u.y)) visCount++;
-      } catch {}
-      dlog('DBG summary', { turn: game.turn, currentPlayer: game.currentPlayer, me: mpClient?.player, units: total, p0, p1, visibleToCurrent: visCount, lastSeq: window.__lastEvtSeq, transport: window.MP_TRANSPORT });
-    }
-  }
 }
 
 function animate() {
@@ -397,11 +380,9 @@ function applyActionLocal(action, byPlayer, isRemote=false) {
   if (isRemote && mpClient && typeof mpClient.player === 'number' && byPlayer === mpClient.player) {
     const optimisticallyApplied = new Set(['spawn','buildFort','move','attack']);
     if (optimisticallyApplied.has(action.kind)) {
-      dlog('Skip self-echoed remote event', action.kind, 'by', byPlayer);
       return;
     }
   }
-  dlog('Apply action', action.kind, { byPlayer, isRemote, action, pre: { turn: game.turn, cp: game.currentPlayer, units: game.units.length, forts: game.forts.length } });
   switch (action.kind) {
     case 'spawn': {
       const { spawnType, unitType, fortType, x, y } = action;
@@ -423,7 +404,6 @@ function applyActionLocal(action, byPlayer, isRemote=false) {
       game.endTurn(); break;
     }
   }
-  dlog('Apply action done', action.kind, { byPlayer, post: { turn: game.turn, cp: game.currentPlayer, units: game.units.length, forts: game.forts.length } });
 }
 
 function buildInviteLink(roomId) {
@@ -509,7 +489,7 @@ async function initMultiplayer() {
   });
   mpClient.on('snapshot', (msg) => { applySnapshot(msg); });
   mpClient.on('event', (msg) => {
-    dlog('Apply remote event', msg.action?.kind, 'by', msg.player, 'seq', msg.seq, 'cp', msg.currentPlayer);
+    if (msg.action) dlog('Apply remote event', msg.action?.kind, 'by', msg.player, 'seq', msg.seq, 'cp', msg.currentPlayer);
     if (msg.action) applyActionLocal(msg.action, msg.player, /*remote*/true);
     if (typeof msg.currentPlayer === 'number') game.currentPlayer = msg.currentPlayer;
     // If this was our own endTurn event echoed back, persist a snapshot after applying
@@ -528,7 +508,7 @@ async function initMultiplayer() {
     });
   }
   if (typeof mpClient.on === 'function') {
-    mpClient.on('players', (n) => { dlog('Players update', n); window.mpPlayers = n; });
+    mpClient.on('players', (n) => { window.mpPlayers = n; });
   }
 
   if (roomFromUrl) mpClient.joinRoom(roomFromUrl); else wireMpControls();

@@ -112,7 +112,6 @@ export class HttpMPClient {
         if (hasEvents) {
           for (const evt of data.events) {
             this.seq = Math.max(this.seq, evt.seq || 0);
-            this.dlog('recv event', evt.seq, evt.action?.kind, 'by', evt.player, 'cp=', evt.currentPlayer);
             if (evt.type === 'event') this.emit('event', evt);
           }
         }
