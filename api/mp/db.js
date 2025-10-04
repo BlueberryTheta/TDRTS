@@ -4,7 +4,7 @@ export const runtime = 'edge';
 let sqlPromise = null;
 let inited = false;
 
-export function hasNeon() { return !!process.env.NEON_DATABASE_URL; }
+export function hasNeon() { return !!pickDatabaseUrl(); }
 
 function buildConnStringFromParts() {
   const user = process.env.PGUSER || process.env.POSTGRES_USER;
