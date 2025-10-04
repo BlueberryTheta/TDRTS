@@ -60,6 +60,14 @@ loadBackgroundSequential([
 let MODE = (new URLSearchParams(location.search)).get('mode');
 const DEBUG = (() => { try { return (window.DEBUG === true) || (new URLSearchParams(location.search).get('debug') === '1'); } catch { return false; } })();
 function dlog(...args) { if (DEBUG) console.log('[APP]', ...args); }
+// Debug helper to inspect units in console
+try {
+  window.dumpUnits = () => {
+    const arr = game.units.map(u => ({ id: u.id, type: u.type, p: u.player, x: u.x, y: u.y, hp: u.hp, acted: !!u.acted, moved: !!u.moved }));
+    console.table(arr);
+    return arr;
+  };
+} catch {}
 let mpClient = null; // multiplayer client instance when in MP mode
 
 // --- Load unit/fort images ---
@@ -219,6 +227,23 @@ function updateUI() {
       }
     }
   }
+  // Periodic debug summary (throttled)
+  if (DEBUG) {
+    const nowTS = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    if (!window.__dbgNext || nowTS >= window.__dbgNext) {
+      window.__dbgNext = nowTS + 1500;
+      const total = game.units.length;
+      const p0 = game.units.filter(u => u.player === 0).length;
+      const p1 = total - p0;
+      let visCount = 0;
+      try {
+        if (typeof game.recomputeVisibility === 'function') game.recomputeVisibility();
+        const cur = game.currentPlayer;
+        for (const u of game.units) if (u.player === cur || game.isTileVisibleTo(cur, u.x, u.y)) visCount++;
+      } catch {}
+      dlog('DBG summary', { turn: game.turn, currentPlayer: game.currentPlayer, me: mpClient?.player, units: total, p0, p1, visibleToCurrent: visCount, lastSeq: window.__lastEvtSeq, transport: window.MP_TRANSPORT });
+    }
+  }
 }
 
 function animate() {
@@ -327,6 +352,7 @@ function applySnapshot(snap) {
   game.bases = s.bases; game.flags = s.flags;
   game.units = s.units; game.forts = s.forts;
   game.isGameOver = s.isGameOver; game.winner = s.winner;
+  try { window.__lastSnapshotAt = Date.now(); } catch {}
 }
 
 function buildSnapshot() {
