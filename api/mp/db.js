@@ -6,12 +6,46 @@ let inited = false;
 
 export function hasNeon() { return !!process.env.NEON_DATABASE_URL; }
 
+function buildConnStringFromParts() {
+  const user = process.env.PGUSER || process.env.POSTGRES_USER;
+  const pass = process.env.PGPASSWORD || process.env.POSTGRES_PASSWORD;
+  const host = process.env.PGHOST_UNPOOLED || process.env.POSTGRES_HOST || process.env.PGHOST;
+  const db   = process.env.PGDATABASE || process.env.POSTGRES_DATABASE;
+  if (!user || !pass || !host || !db) return null;
+  let url = `postgres://${encodeURIComponent(user)}:${encodeURIComponent(pass)}@${host}/${db}`;
+  if (!/\?/.test(url)) url += '?sslmode=require';
+  else if (!/sslmode=/.test(url)) url += '&sslmode=require';
+  return url;
+}
+
+function pickDatabaseUrl() {
+  // Prefer explicit vars, then Vercel/Neon defaults, then assemble from parts
+  const candidates = [
+    process.env.NEON_DATABASE_URL,
+    process.env.DATABASE_URL,
+    process.env.POSTGRES_URL,
+    process.env.POSTGRES_URL_NON_POOLING,
+    process.env.POSTGRES_PRISMA_URL,
+    process.env.POSTGRES_URL_NO_SSL,
+  ].filter(Boolean);
+  for (const c of candidates) {
+    if (/^postgres(ql)?:\/\//i.test(c)) {
+      // Ensure sslmode=require
+      if (!/sslmode=/.test(c)) {
+        return c + (c.includes('?') ? '&' : '?') + 'sslmode=require';
+      }
+      return c;
+    }
+  }
+  return buildConnStringFromParts();
+}
+
 async function getSql() {
   if (sqlPromise) return sqlPromise;
   sqlPromise = (async () => {
     try {
       const { neon } = await import('@neondatabase/serverless');
-      const url = process.env.NEON_DATABASE_URL;
+      const url = pickDatabaseUrl();
       if (!url) return null;
       return neon(url);
     } catch {
