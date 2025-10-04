@@ -347,6 +347,14 @@ function buildSnapshot() {
 }
 
 function applyActionLocal(action, byPlayer, isRemote=false) {
+  // Ignore our own echoed remote events to avoid double-apply
+  if (isRemote && mpClient && typeof mpClient.player === 'number' && byPlayer === mpClient.player) {
+    const optimisticallyApplied = new Set(['spawn','buildFort','move','attack']);
+    if (optimisticallyApplied.has(action.kind)) {
+      dlog('Skip self-echoed remote event', action.kind, 'by', byPlayer);
+      return;
+    }
+  }
   dlog('Apply action', action.kind, { byPlayer, isRemote, action });
   switch (action.kind) {
     case 'spawn': {
@@ -392,17 +400,27 @@ function showRoomBanner(roomId, player) {
 async function initMultiplayer() {
   const defaultWs = ((location.protocol === 'https:') ? 'wss://' : 'ws://') + location.host + '/api/ws';
   const wsUrl = (window.WS_URL || localStorage.getItem('WS_URL') || defaultWs);
-  dlog('MP init', { wsUrl });
+  const forceWS = (window.FORCE_WS === true) || (localStorage.getItem('FORCE_WS') === '1');
+  // Prefer HTTP polling on Vercel to avoid cross-isolate WS state issues
+  const onVercel = /\.vercel\.app$/.test(location.hostname);
+  const preferHttp = onVercel && !forceWS;
+  dlog('MP init', { wsUrl, onVercel, forceWS, preferHttp });
   const { MultiplayerClient, HttpMPClient } = await import('./net.js');
-  mpClient = new MultiplayerClient(wsUrl);
-  try {
-    await mpClient.connect();
-    dlog('MP connected');
-  } catch (e) {
-    console.error('MP init failed', e);
-    // Fallback to HTTP MP
+
+  if (preferHttp) {
     mpClient = new HttpMPClient(location.origin);
     await mpClient.connect();
+  } else {
+    mpClient = new MultiplayerClient(wsUrl);
+    try {
+      await mpClient.connect();
+      dlog('MP connected');
+    } catch (e) {
+      console.error('MP WS connect failed, falling back to HTTP', e);
+      // Fallback to HTTP MP
+      mpClient = new HttpMPClient(location.origin);
+      await mpClient.connect();
+    }
   }
 
   // Room UI
@@ -425,7 +443,11 @@ async function initMultiplayer() {
     const modeEl = document.getElementById('modeModal'); if (modeEl) modeEl.style.display = 'none';
   });
   mpClient.on('snapshot', (msg) => { applySnapshot(msg); });
-  mpClient.on('event', (msg) => { if (msg.action) applyActionLocal(msg.action, msg.player, /*remote*/true); if (typeof msg.currentPlayer === 'number') game.currentPlayer = msg.currentPlayer; });
+  mpClient.on('event', (msg) => {
+    dlog('Apply remote event', msg.action?.kind, 'by', msg.player, 'seq', msg.seq, 'cp', msg.currentPlayer);
+    if (msg.action) applyActionLocal(msg.action, msg.player, /*remote*/true);
+    if (typeof msg.currentPlayer === 'number') game.currentPlayer = msg.currentPlayer;
+  });
   mpClient.on('request_state', () => { mpClient.snapshot(buildSnapshot()); });
   if (typeof mpClient.on === 'function') {
     mpClient.on('players', (n) => { dlog('Players update', n); window.mpPlayers = n; });

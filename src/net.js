@@ -98,12 +98,13 @@ export class HttpMPClient {
         if (Array.isArray(data.events)) {
           for (const evt of data.events) {
             this.seq = Math.max(this.seq, evt.seq || 0);
+            this.dlog('recv event', evt.seq, evt.action?.kind, 'by', evt.player, 'cp=', evt.currentPlayer);
             if (evt.type === 'event') this.emit('event', evt);
           }
         }
         if (typeof data.players === 'number') this.emit('players', data.players);
       } catch(e) { this.dlog('poll error', e); }
-      if (this.polling) setTimeout(loop, 700);
+      if (this.polling) setTimeout(loop, 300);
     };
     loop();
   }
