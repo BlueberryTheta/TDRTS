@@ -322,6 +322,48 @@ function applySnapshot(snap) {
   game.isGameOver = s.isGameOver; game.winner = s.winner;
 }
 
+function buildSnapshot() {
+  return {
+    w: game.w,
+    h: game.h,
+    turn: game.turn,
+    currentPlayer: game.currentPlayer,
+    income: game.income,
+    money: game.money,
+    bases: game.bases,
+    flags: game.flags,
+    units: game.units,
+    forts: game.forts,
+    isGameOver: game.isGameOver,
+    winner: game.winner,
+  };
+}
+
+function applyActionLocal(action, byPlayer, isRemote=false) {
+  dlog('Apply action', action.kind, { byPlayer, isRemote, action });
+  switch (action.kind) {
+    case 'spawn': {
+      const { spawnType, unitType, fortType, x, y } = action;
+      if (spawnType === 'unit') { const ut = UNIT_TYPES[unitType]; if (!ut) return; game.currentPlayer = byPlayer; game.queueSpawn(ut); game.trySpawnAt(x, y); }
+      else { const ft = FORT_TYPES[fortType]; if (!ft) return; game.currentPlayer = byPlayer; game.queueFort(ft); game.trySpawnAt(x, y); }
+      break;
+    }
+    case 'buildFort': {
+      const { fortType, engineerId, x, y } = action; const ft = FORT_TYPES[fortType]; if (!ft) return; game.currentPlayer = byPlayer; game.selectedId = engineerId; game.queueFortBuild(ft); game.tryBuildAt(x, y); break;
+    }
+    case 'move': {
+      const { unitId, x, y } = action; const u = game.getUnitById(unitId); if (!u) return; game.currentPlayer = byPlayer; game.moveUnitTo(u, x, y); game.checkFlagCapture(u); break;
+    }
+    case 'attack': {
+      const { attackerId, x, y } = action; const a = game.getUnitById(attackerId); const enemy = game.getEnemyAt(x, y) || game.getFortAt(x, y); if (!a || !enemy) return; game.currentPlayer = byPlayer; game.attack(a, enemy); break;
+    }
+    case 'endTurn': {
+      // Allow server to be source of truth for currentPlayer if provided
+      game.endTurn(); break;
+    }
+  }
+}
+
 async function initMultiplayer() {
   const defaultWs = ((location.protocol === 'https:') ? 'wss://' : 'ws://') + location.host + '/api/ws';
   const wsUrl = (window.WS_URL || localStorage.getItem('WS_URL') || defaultWs);
@@ -353,9 +395,14 @@ async function initMultiplayer() {
     if (info) {
       info.innerHTML = `<summary>Online Multiplayer</summary><div class="hint">Room: <strong>${roomId}</strong><br/>Share this link: <code>?mode=mp&room=${roomId}</code></div>`;
     }
+    // If host, send initial snapshot
+    if (player === 0) {
+      mpClient.send({ type: 'snapshot', state: buildSnapshot() });
+    }
   });
   mpClient.on('snapshot', (msg) => { applySnapshot(msg); });
-  mpClient.on('event', (msg) => { if (msg.snapshot) applySnapshot(msg.snapshot); });
+  mpClient.on('event', (msg) => { if (msg.action) applyActionLocal(msg.action, msg.player, /*remote*/true); if (typeof msg.currentPlayer === 'number') game.currentPlayer = msg.currentPlayer; });
+  mpClient.on('request_state', () => { mpClient.send({ type: 'snapshot', state: buildSnapshot() }); });
 
   if (roomFromUrl) {
     mpClient.joinRoom(roomFromUrl);
@@ -374,21 +421,27 @@ async function initMultiplayer() {
       dlog('HOOK spawn', { kind, unitType, fortType, x, y });
       const spawnType = kind; // 'unit' or 'fort'
       mpClient.action({ kind: 'spawn', spawnType, unitType, fortType, x, y });
+      // Apply locally
+      if (spawnType === 'unit') { const ut = UNIT_TYPES[unitType]; game.queueSpawn(ut); game.trySpawnAt(x, y); }
+      else { const ft = FORT_TYPES[fortType]; game.queueFort(ft); game.trySpawnAt(x, y); }
     },
     buildFort: (fortType, engineerId, x, y) => {
       if (game.currentPlayer !== mpClient.player) return;
       dlog('HOOK buildFort', { fortType, engineerId, x, y });
       mpClient.action({ kind: 'buildFort', fortType, engineerId, x, y });
+      game.selectedId = engineerId; const ft = FORT_TYPES[fortType]; game.queueFortBuild(ft); game.tryBuildAt(x, y);
     },
     move: (unitId, x, y) => {
       if (game.currentPlayer !== mpClient.player) return;
       dlog('HOOK move', { unitId, x, y });
       mpClient.action({ kind: 'move', unitId, x, y });
+      const u = game.getUnitById(unitId); if (u) { game.moveUnitTo(u, x, y); game.checkFlagCapture(u); }
     },
     attack: (attackerId, x, y) => {
       if (game.currentPlayer !== mpClient.player) return;
       dlog('HOOK attack', { attackerId, x, y });
       mpClient.action({ kind: 'attack', attackerId, x, y });
+      const a = game.getUnitById(attackerId); const enemy = game.getEnemyAt(x, y) || game.getFortAt(x, y); if (a && enemy) game.attack(a, enemy);
     },
   };
   // Reattach input with hooks
