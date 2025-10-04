@@ -310,11 +310,12 @@ export class GameState {
     const maxLoop = extendedRange;
     for (let dx = -maxLoop; dx <= maxLoop; dx++) {
       for (let dy = -maxLoop; dy <= maxLoop; dy++) {
-        const d = Math.abs(dx) + Math.abs(dy);
-        if (d === 0) continue;
+        const cheb = Math.max(Math.abs(dx), Math.abs(dy));
+        if (cheb === 0) continue;
         const x = unit.x + dx, y = unit.y + dy;
         if (!this.isInside(x, y)) continue;
-        if (d > baseRange && d <= extendedRange && this.hasFriendlyScoutNearTile(x, y, unit.player, 5)) {
+        const minRange = 2;
+        if (cheb > baseRange && cheb <= extendedRange && cheb >= minRange && this.hasFriendlyScoutNearTile(x, y, unit.player, 5)) {
           tiles.add(`${x},${y}`);
         }
       }
@@ -341,9 +342,13 @@ export class GameState {
   }
 
   pickupFlagIfAny(unit) {
-    const enemyFlag = this.flags[(unit.player + 1) % 2];
-    if (enemyFlag.carriedBy == null && enemyFlag.x === unit.x && enemyFlag.y === unit.y) {
-      enemyFlag.carriedBy = unit.id;
+    // Pick up any flag present on this tile that is not already carried
+    for (let i = 0; i < this.flags.length; i++) {
+      const flag = this.flags[i];
+      if (flag.carriedBy == null && flag.x === unit.x && flag.y === unit.y) {
+        flag.carriedBy = unit.id;
+        flag.atBase = false;
+      }
     }
   }
 
@@ -374,8 +379,8 @@ export class GameState {
     let { suppressCounter = false } = opts;
     if (attacker.acted) return false;
     // Artillery cannot attack adjacent targets (range <= 1)
-    const distAT = Math.abs(attacker.x - target.x) + Math.abs(attacker.y - target.y);
-    if (!attacker.fort && attacker.type === 'Artillery' && distAT <= 1) return false;
+    const chebAT = Math.max(Math.abs(attacker.x - target.x), Math.abs(attacker.y - target.y));
+    if (!attacker.fort && attacker.type === 'Artillery' && chebAT <= 1) return false;
     // Compute damage with bunker cover if target is a unit standing on friendly bunker
     const atkBonus = attacker.fort ? 0 : (rankForXP(attacker.xp || 0).level + this.getOfficerBonus(attacker)); // forts don't level
     let dmg = (attacker.atk || 0) + atkBonus;
@@ -404,7 +409,7 @@ export class GameState {
     // Explosion effect for long-range spotted artillery fire
     if (!attacker.fort && attacker.type === 'Artillery') {
       const baseR = attacker.range;
-      if (distAT > baseR && distAT <= 10 && this.hasFriendlyScoutNearTile(target.x, target.y, attacker.player, 5)) {
+      if (chebAT > baseR && chebAT <= 10 && this.hasFriendlyScoutNearTile(target.x, target.y, attacker.player, 5)) {
         this.spawnExplosion(target.x, target.y, 400);
       }
     }
@@ -427,7 +432,7 @@ export class GameState {
     } else {
       // Defender counterattacks if still alive (units only).
       // Artillery should not take counter damage when firing at range (> 1 tile)
-      if (!attacker.fort && attacker.type === 'Artillery' && distAT > 1) suppressCounter = true;
+      if (!attacker.fort && attacker.type === 'Artillery' && chebAT > 1) suppressCounter = true;
       if (!suppressCounter && !target.fort) {
         const defBonus = rankForXP(target.xp || 0).level + this.getOfficerBonus(target);
         let counter = Math.max(0, (target.def || 0) + defBonus);
@@ -470,8 +475,8 @@ export class GameState {
       const range = f.range ?? 2;
       for (const u of this.units) {
         if (u.player === f.player) continue; // only enemies
-        const d = Math.abs(u.x - f.x) + Math.abs(u.y - f.y);
-        if (d <= range) {
+        const cheb = Math.max(Math.abs(u.x - f.x), Math.abs(u.y - f.y));
+        if (cheb <= range) {
           // Use attack path with suppressCounter to avoid units damaging pillbox back
           // Temporarily give fort an atk field if absent
           const atkVal = f.atk ?? 0;
@@ -545,16 +550,16 @@ export class GameState {
     const maxLoop = Math.max(baseRange, extendedRange);
     for (let dx = -maxLoop; dx <= maxLoop; dx++) {
       for (let dy = -maxLoop; dy <= maxLoop; dy++) {
-        const d = Math.abs(dx) + Math.abs(dy);
-        if (d === 0 || d > maxLoop) continue;
+        const cheb = Math.max(Math.abs(dx), Math.abs(dy));
+        if (cheb === 0 || cheb > maxLoop) continue;
         const x = unit.x + dx, y = unit.y + dy;
         if (!this.isInside(x, y)) continue;
         // Within base range is always valid
-        if (d <= baseRange && d >= minRange) {
+        if (cheb <= baseRange && cheb >= minRange) {
           tiles.add(`${x},${y}`);
         } else if (unit.type === 'Artillery') {
           // Within extended range only if a friendly Scout is within 5 tiles of the target tile
-          if (d <= extendedRange && d >= minRange && this.hasFriendlyScoutNearTile(x, y, unit.player, 5)) {
+          if (cheb <= extendedRange && cheb >= minRange && this.hasFriendlyScoutNearTile(x, y, unit.player, 5)) {
             tiles.add(`${x},${y}`);
           }
         }
