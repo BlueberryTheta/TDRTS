@@ -554,6 +554,7 @@ async function initMultiplayer() {
   };
   // Reattach input with hooks
   attachInput(canvas, TILE_SIZE, game, hooks);
+  try { window.__MP_HOOKS = hooks; } catch {}
 
   // No auto create/join; handled by UI
 }

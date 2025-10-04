@@ -17,6 +17,11 @@ export function attachInput(canvas, tileSize, game, hooks) {
     return { x: tx, y: ty };
   };
 
+  const getHooks = () => {
+    try { if (typeof window !== 'undefined' && window.__MP_HOOKS) return window.__MP_HOOKS; } catch {}
+    return hooks;
+  };
+
   const onPoint = (clientX, clientY) => {
     if (game.isGameOver) return; // block interactions when game ended
     // Recompute visibility for accurate fog interactions
@@ -25,10 +30,11 @@ export function attachInput(canvas, tileSize, game, hooks) {
 
     // If an engineer build is queued, try to build here first
     if (game.buildQueue) {
-      if (hooks && typeof hooks.buildFort === 'function') {
+      const hk = getHooks();
+      if (hk && typeof hk.buildFort === 'function') {
         const { fortType } = game.buildQueue;
         const eng = game.getUnitById(game.buildQueue.engineerId);
-        hooks.buildFort(fortType.name, eng ? eng.id : null, x, y);
+        hk.buildFort(fortType.name, eng ? eng.id : null, x, y);
         game.buildQueue = null; // await server
         return;
       } else {
@@ -39,10 +45,11 @@ export function attachInput(canvas, tileSize, game, hooks) {
 
     // If a spawn is queued, try to spawn here
     if (game.spawnQueue) {
-      if (hooks && typeof hooks.spawn === 'function') {
+      const hk = getHooks();
+      if (hk && typeof hk.spawn === 'function') {
         const kind = game.spawnQueue.kind;
-        if (kind === 'unit') hooks.spawn({ kind, unitType: game.spawnQueue.unitType.name, x, y });
-        else if (kind === 'fort') hooks.spawn({ kind, fortType: game.spawnQueue.fortType.name, x, y });
+        if (kind === 'unit') hk.spawn({ kind, unitType: game.spawnQueue.unitType.name, x, y });
+        else if (kind === 'fort') hk.spawn({ kind, fortType: game.spawnQueue.fortType.name, x, y });
         game.spawnQueue = null; // await server
         return;
       } else {
@@ -78,8 +85,9 @@ export function attachInput(canvas, tileSize, game, hooks) {
       if (!visible && !spottedForArtillery) return;
       const atkTiles = game.getAttackableTiles(sel);
       if (atkTiles.has(`${x},${y}`)) {
-        if (hooks && typeof hooks.attack === 'function') {
-          hooks.attack(sel.id, x, y);
+        const hk = getHooks();
+        if (hk && typeof hk.attack === 'function') {
+          hk.attack(sel.id, x, y);
         } else {
           game.attack(sel, enemy || fort);
         }
@@ -91,8 +99,9 @@ export function attachInput(canvas, tileSize, game, hooks) {
     if (!sel.moved) {
       const moveTiles = game.getMoveRange(sel);
       if (moveTiles.has(`${x},${y}`)) {
-        if (hooks && typeof hooks.move === 'function') {
-          hooks.move(sel.id, x, y);
+        const hk = getHooks();
+        if (hk && typeof hk.move === 'function') {
+          hk.move(sel.id, x, y);
         } else {
           const ok = game.moveUnitTo(sel, x, y);
           // If carrying flag and on base, check capture now
