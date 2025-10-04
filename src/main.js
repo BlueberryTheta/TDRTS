@@ -345,9 +345,14 @@ function showGameOver() {
 function applySnapshot(snap) {
   const s = snap.state;
   dlog('Apply snapshot', { turn: s.turn, currentPlayer: s.currentPlayer, units: s.units?.length, forts: s.forts?.length, flags: s.flags });
-  // Replace mutable fields
+  // Replace mutable fields, but never roll back turn/currentPlayer
   game.w = s.w; game.h = s.h;
-  game.turn = s.turn; game.currentPlayer = s.currentPlayer;
+  if (typeof s.turn === 'number' && s.turn >= (game.turn || 0)) {
+    game.turn = s.turn;
+    if (typeof s.currentPlayer === 'number') game.currentPlayer = s.currentPlayer;
+  } else {
+    dlog('Skip snapshot turn rollback', { snapTurn: s.turn, localTurn: game.turn, snapCP: s.currentPlayer, localCP: game.currentPlayer });
+  }
   game.income = s.income; game.money = s.money;
   game.bases = s.bases; game.flags = s.flags;
   game.units = s.units; game.forts = s.forts;
