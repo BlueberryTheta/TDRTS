@@ -87,12 +87,17 @@ export async function getRoom(id) {
   const sql = await getSql(); if (!sql) return null;
   await initTables();
   const rows = await sql`SELECT id, players, current_player, last_snapshot, seq FROM rooms WHERE id = ${id}`;
+  try {
+    const r = rows[0];
+    console.log('[MP/DB] getRoom', id, 'players=', r?.players, 'current_player=', r?.current_player, 'seq=', r?.seq);
+  } catch {}
   return rows[0] || null;
 }
 
 export async function upsertRoom(room) {
   const sql = await getSql(); if (!sql) return;
   await initTables();
+  try { console.log('[MP/DB] upsertRoom', room.id, 'players=', room.players, 'current_player=', room.current_player, 'seq=', room.seq, 'snap=', !!room.last_snapshot); } catch {}
   await sql`INSERT INTO rooms (id, players, current_player, last_snapshot, seq)
             VALUES (${room.id}, ${room.players}, ${room.current_player}, ${room.last_snapshot}, ${room.seq})
             ON CONFLICT (id) DO UPDATE SET
@@ -108,6 +113,7 @@ export async function createRoomRow(id) {
   await sql`INSERT INTO rooms (id, players, current_player, last_snapshot, seq)
             VALUES (${id}, 0, 0, NULL, 0)
             ON CONFLICT (id) DO NOTHING`;
+  try { console.log('[MP/DB] createRoomRow', id); } catch {}
   return await getRoom(id);
 }
 
@@ -115,6 +121,7 @@ export async function nextSeq(id) {
   const sql = await getSql(); if (!sql) return 0;
   await initTables();
   const rows = await sql`UPDATE rooms SET seq = seq + 1 WHERE id = ${id} RETURNING seq`;
+  try { console.log('[MP/DB] nextSeq', id, 'seq=', rows[0]?.seq); } catch {}
   return rows[0]?.seq || 0;
 }
 
@@ -122,12 +129,14 @@ export async function appendEventRow(id, seq, data) {
   const sql = await getSql(); if (!sql) return;
   await initTables();
   await sql`INSERT INTO events (room_id, seq, data) VALUES (${id}, ${seq}, ${data})`;
+  try { console.log('[MP/DB] appendEventRow', id, 'seq=', seq, 'kind=', data?.action?.kind); } catch {}
 }
 
 export async function listEventsSince(id, since) {
   const sql = await getSql(); if (!sql) return [];
   await initTables();
   const rows = await sql`SELECT seq, data FROM events WHERE room_id = ${id} AND seq > ${since} ORDER BY seq ASC LIMIT 500`;
+  try { console.log('[MP/DB] listEventsSince', id, 'since=', since, 'count=', rows.length); } catch {}
   return rows.map(r => ({ seq: Number(r.seq), ...r.data }));
 }
 
@@ -136,6 +145,7 @@ export async function setPlayersIf(id, expected, newVal) {
   const sql = await getSql(); if (!sql) return 0;
   await initTables();
   const rows = await sql`UPDATE rooms SET players = ${newVal} WHERE id = ${id} AND players = ${expected} RETURNING players`;
+  try { console.log('[MP/DB] setPlayersIf', id, 'expected=', expected, '->', rows[0]?.players); } catch {}
   return Number(rows[0]?.players || 0);
 }
 
@@ -143,5 +153,6 @@ export async function incPlayersIf(id, expected) {
   const sql = await getSql(); if (!sql) return 0;
   await initTables();
   const rows = await sql`UPDATE rooms SET players = players + 1 WHERE id = ${id} AND players = ${expected} RETURNING players`;
+  try { console.log('[MP/DB] incPlayersIf', id, 'expected=', expected, '->', rows[0]?.players); } catch {}
   return Number(rows[0]?.players || 0);
 }

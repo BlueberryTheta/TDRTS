@@ -26,27 +26,32 @@ export async function getOrCreateRoom(id) {
 export async function createRoom() { return await getOrCreateRoom(null); }
 
 export async function joinRoom(roomId) {
+  console.log('[MP/STORE] joinRoom start', roomId);
   // Fetch existing room only; do not create on join
   let r = await getRoom(roomId);
   if (!r) return { error: 'Invalid code' };
   // Wait briefly if creator has not finalized players=1 yet
   let attempts = 0;
   while (Number(r.players) === 0 && attempts < 10) {
+    console.log('[MP/STORE] joinRoom wait players=0 attempt', attempts);
     await new Promise(res => setTimeout(res, 100));
     r = await getRoom(roomId);
     attempts++;
   }
   const room = { id: r.id, players: Number(r.players), currentPlayer: Number(r.current_player), lastSnapshot: r.last_snapshot, seq: Number(r.seq) };
+  console.log('[MP/STORE] joinRoom observed players=', room.players);
   if (room.players === 0) return { error: 'Room not ready' };
   if (room.players >= 2) return { error: 'Room full' };
   // players must be 1 here; try atomic increment
   const after = await incPlayersIf(room.id, 1);
+  console.log('[MP/STORE] joinRoom incPlayersIf result', after);
   if (after === 2) {
     return { room: { ...room, players: after }, player: 1 };
   }
   // Race: re-check once
   const check = await getRoom(roomId);
   const cPlayers = Number(check?.players || 0);
+  console.log('[MP/STORE] joinRoom recheck players=', cPlayers);
   if (cPlayers >= 2) return { room: { ...room, players: cPlayers }, player: 1 };
   return { error: 'Busy, try again' };
 }
@@ -87,10 +92,12 @@ export async function setPlayers(roomId, n) {
   // atomic set only when transitioning from 0 to 1 on create
   if (n === 1) {
     const set = await setPlayersIf(roomId, 0, 1);
+    console.log('[MP/STORE] setPlayersIf 0->1 result', set);
     if (set !== 1) {
       // fallback: ensure exists and update
       const room = await getOrCreateRoom(roomId);
       await upsertRoom({ id: room.id, players: n, current_player: room.currentPlayer, last_snapshot: room.lastSnapshot, seq: room.seq });
+      console.log('[MP/STORE] setPlayers fallback upsert done');
     }
   } else {
     const room = await getOrCreateRoom(roomId);
