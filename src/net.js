@@ -107,6 +107,7 @@ export class HttpMPClient {
         const url = `/api/mp/poll?room=${encodeURIComponent(this.roomId)}&since=${this.seq}`;
         const res = await fetch(url, { headers:{ 'Cache-Control':'no-cache' } });
         const data = await res.json();
+        this.dlog('poll summary', { since: this.seq, events: Array.isArray(data.events) ? data.events.length : 0, currentPlayer: data.currentPlayer, hasSnapshot: !!data.snapshot, lastSeq: data.lastSeq });
         const hasEvents = Array.isArray(data.events) && data.events.length > 0;
         if (hasEvents) {
           for (const evt of data.events) {

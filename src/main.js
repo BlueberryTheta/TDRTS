@@ -386,7 +386,7 @@ function applyActionLocal(action, byPlayer, isRemote=false) {
       return;
     }
   }
-  dlog('Apply action', action.kind, { byPlayer, isRemote, action });
+  dlog('Apply action', action.kind, { byPlayer, isRemote, action, pre: { turn: game.turn, cp: game.currentPlayer, units: game.units.length, forts: game.forts.length } });
   switch (action.kind) {
     case 'spawn': {
       const { spawnType, unitType, fortType, x, y } = action;
@@ -408,6 +408,7 @@ function applyActionLocal(action, byPlayer, isRemote=false) {
       game.endTurn(); break;
     }
   }
+  dlog('Apply action done', action.kind, { byPlayer, post: { turn: game.turn, cp: game.currentPlayer, units: game.units.length, forts: game.forts.length } });
 }
 
 function buildInviteLink(roomId) {

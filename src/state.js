@@ -1,5 +1,10 @@
 import { UNIT_TYPES, makeUnit, FORT_TYPES, makeFort, rankForXP } from './units.js';
 
+function DBG() {
+  try { return (typeof window !== 'undefined' && window.DEBUG === true) || (new URLSearchParams(location.search).get('debug') === '1'); } catch { return false; }
+}
+function slog(...args) { if (DBG()) console.log('[STATE]', ...args); }
+
 export class GameState {
   constructor(width, height) {
     this.w = width;
@@ -144,46 +149,52 @@ export class GameState {
   }
 
   queueSpawn(unitType) {
-    if (this.money[this.currentPlayer] < unitType.cost) return;
+    if (this.money[this.currentPlayer] < unitType.cost) { if (DBG()) slog('queueSpawn denied (money)', { cp: this.currentPlayer, money: this.money[this.currentPlayer], cost: unitType.cost }); return; }
+    slog('queueSpawn', { type: unitType.name, cp: this.currentPlayer });
     this.spawnQueue = { kind: 'unit', unitType };
   }
 
   queueFort(fortType) {
-    if (this.money[this.currentPlayer] < fortType.cost) return;
+    if (this.money[this.currentPlayer] < fortType.cost) { if (DBG()) slog('queueFort denied (money)', { cp: this.currentPlayer, money: this.money[this.currentPlayer], cost: fortType.cost }); return; }
+    slog('queueFort', { type: fortType.name, cp: this.currentPlayer });
     this.spawnQueue = { kind: 'fort', fortType };
   }
 
   queueFortBuild(fortType) {
     const eng = this.getSelectedUnit();
-    if (!eng || eng.player !== this.currentPlayer) return;
-    if (eng.type !== 'Engineer') return;
-    if (eng.acted) return;
-    if (this.money[this.currentPlayer] < fortType.cost) return;
+    if (!eng || eng.player !== this.currentPlayer) { if (DBG()) slog('queueFortBuild denied: no engineer selected or wrong player'); return; }
+    if (eng.type !== 'Engineer') { if (DBG()) slog('queueFortBuild denied: selected not Engineer'); return; }
+    if (eng.acted) { if (DBG()) slog('queueFortBuild denied: engineer already acted'); return; }
+    if (this.money[this.currentPlayer] < fortType.cost) { if (DBG()) slog('queueFortBuild denied (money)', { cp: this.currentPlayer, money: this.money[this.currentPlayer], cost: fortType.cost }); return; }
+    slog('queueFortBuild', { type: fortType.name, engineerId: eng.id, cp: this.currentPlayer });
     this.buildQueue = { fortType, engineerId: eng.id };
   }
 
   trySpawnAt(x, y) {
-    if (!this.spawnQueue) return false;
+    if (!this.spawnQueue) { if (DBG()) slog('trySpawnAt no spawnQueue', { x, y }); return false; }
+    if (DBG()) slog('trySpawnAt begin', { x, y, queue: this.spawnQueue });
     const id = this.nextId();
     if (this.spawnQueue.kind === 'unit') {
       // For units: allow spawning onto friendly bunker near base (including diagonals)
       const { x: bx, y: by } = this.bases[this.currentPlayer];
       const dx = Math.abs(x - bx), dy = Math.abs(y - by);
       const nearBase = Math.max(dx, dy) <= 1;
-      if (!nearBase || !this.isInside(x, y)) return false;
-      if (this.units.some(u => u.x === x && u.y === y)) return false;
+      if (!nearBase || !this.isInside(x, y)) { if (DBG()) slog('trySpawnAt unit denied: not near base/inside'); return false; }
+      if (this.units.some(u => u.x === x && u.y === y)) { if (DBG()) slog('trySpawnAt unit denied: unit occupies tile'); return false; }
       const fort = this.forts.find(f => f.x === x && f.y === y);
-      if (fort && !(fort.type === 'Bunker' && fort.player === this.currentPlayer)) return false;
+      if (fort && !(fort.type === 'Bunker' && fort.player === this.currentPlayer)) { if (DBG()) slog('trySpawnAt unit denied: fort blocks', { fort }); return false; }
       const { unitType } = this.spawnQueue;
       const unit = makeUnit(id, unitType, this.currentPlayer, x, y);
       this.units.push(unit);
       this.money[this.currentPlayer] -= unitType.cost;
+      if (DBG()) slog('spawned unit', { id, type: unitType.name, x, y, cp: this.currentPlayer, money: this.money[this.currentPlayer] });
     } else if (this.spawnQueue.kind === 'fort') {
-      if (!this.canSpawnAt(x, y)) return false;
+      if (!this.canSpawnAt(x, y)) { if (DBG()) slog('trySpawnAt fort denied: canSpawnAt false'); return false; }
       const { fortType } = this.spawnQueue;
       const fort = makeFort(id, fortType, this.currentPlayer, x, y);
       this.forts.push(fort);
       this.money[this.currentPlayer] -= fortType.cost;
+      if (DBG()) slog('spawned fort', { id, type: fortType.name, x, y, cp: this.currentPlayer, money: this.money[this.currentPlayer] });
     }
     this.spawnQueue = null;
     return true;
@@ -217,8 +228,8 @@ export class GameState {
   }
 
   tryBuildAt(x, y) {
-    if (!this.buildQueue) return false;
-    if (!this.canEngineerBuildAt(x, y)) return false;
+    if (!this.buildQueue) { if (DBG()) slog('tryBuildAt no buildQueue'); return false; }
+    if (!this.canEngineerBuildAt(x, y)) { if (DBG()) slog('tryBuildAt denied: cannot build here', { x, y }); return false; }
     const eng = this.getUnitById(this.buildQueue.engineerId);
     const { fortType } = this.buildQueue;
     const id = this.nextId();
@@ -227,11 +238,13 @@ export class GameState {
     this.money[this.currentPlayer] -= fortType.cost;
     if (eng) eng.acted = true;
     this.buildQueue = null;
+    if (DBG()) slog('built fort', { id, type: fortType.name, x, y, by: eng?.id, cp: this.currentPlayer, money: this.money[this.currentPlayer] });
     return true;
   }
 
   endTurn() {
     if (this.isGameOver) return; // no-op when game ended
+    if (DBG()) slog('endTurn begin', { turn: this.turn, currentPlayer: this.currentPlayer, money: this.money.slice ? this.money.slice() : this.money });
     // Reset units' action state for the next player
     this.units.forEach(u => {
       if (u.player === this.currentPlayer) {
@@ -260,6 +273,7 @@ export class GameState {
     this.selectedId = null;
     this.spawnQueue = null;
     this.buildQueue = null;
+    if (DBG()) slog('endTurn end', { turn: this.turn, currentPlayer: this.currentPlayer, money: this.money.slice ? this.money.slice() : this.money });
   }
 
   // Units standing on a friendly bunker auto-attack adjacent enemy units
@@ -338,8 +352,10 @@ export class GameState {
   }
 
   moveUnitTo(unit, x, y) {
-    if (!this.isPassableForUnit(unit, x, y)) return false;
+    const ox = unit.x, oy = unit.y;
+    if (!this.isPassableForUnit(unit, x, y)) { if (DBG()) slog('move denied', { id: unit.id, from: {x:ox,y:oy}, to: {x,y} }); return false; }
     unit.x = x; unit.y = y; unit.moved = true;
+    if (DBG()) slog('moved', { id: unit.id, type: unit.type, p: unit.player, from: {x:ox,y:oy}, to: {x,y} });
     // If moved onto a flag
     this.pickupFlagIfAny(unit);
     // If carrying own flag and on own base, return it to base
@@ -399,10 +415,10 @@ export class GameState {
 
   attack(attacker, target, opts = {}) {
     let { suppressCounter = false } = opts;
-    if (attacker.acted) return false;
+    if (attacker.acted) { if (DBG()) slog('attack denied: attacker already acted', { attacker: attacker.id }); return false; }
     // Artillery cannot attack adjacent targets (range <= 1)
     const chebAT = Math.max(Math.abs(attacker.x - target.x), Math.abs(attacker.y - target.y));
-    if (!attacker.fort && attacker.type === 'Artillery' && chebAT <= 1) return false;
+    if (!attacker.fort && attacker.type === 'Artillery' && chebAT <= 1) { if (DBG()) slog('attack denied: artillery adjacent'); return false; }
     // Compute damage with bunker cover if target is a unit standing on friendly bunker
     const atkBonus = attacker.fort ? 0 : (rankForXP(attacker.xp || 0).level + this.getOfficerBonus(attacker)); // forts don't level
     let dmg = (attacker.atk || 0) + atkBonus;
@@ -421,6 +437,7 @@ export class GameState {
       }
     }
     target.hp -= dmg;
+    if (DBG()) slog('attack hit', { attacker: { id: attacker.id, type: attacker.type, p: attacker.player, x: attacker.x, y: attacker.y }, target: { id: target.id, type: target.type, p: target.player, x: target.x, y: target.y }, dmg, targetHp: target.hp });
     if (!target.fort) {
       try { target.hitUntil = (performance && performance.now ? performance.now() : Date.now()) + 200; } catch (_) { target.hitUntil = Date.now() + 200; }
     }
@@ -447,9 +464,11 @@ export class GameState {
       if (target.fort) {
         const fi = this.forts.findIndex(f => f.id === target.id);
         if (fi >= 0) this.forts.splice(fi, 1);
+        if (DBG()) slog('fort destroyed', { id: target.id, type: target.type, x: target.x, y: target.y });
       } else {
         const idx = this.units.findIndex(u => u.id === target.id);
         if (idx >= 0) this.units.splice(idx, 1);
+        if (DBG()) slog('unit destroyed', { id: target.id, type: target.type, x: target.x, y: target.y });
       }
     } else {
       // Defender counterattacks if still alive (units only).
@@ -464,6 +483,7 @@ export class GameState {
         }
         if (counter > 0) {
           attacker.hp -= counter;
+          if (DBG()) slog('counter hit', { attackerId: attacker.id, counter, attackerHp: attacker.hp });
           try { attacker.hitUntil = (performance && performance.now ? performance.now() : Date.now()) + 200; } catch (_) { attacker.hitUntil = Date.now() + 200; }
           // If attacker carried a flag, drop it on their tile before removal
           const attEnemyFlag = this.flags[(attacker.player + 1) % 2];
@@ -473,6 +493,7 @@ export class GameState {
             }
             const ai = this.units.findIndex(u => u.id === attacker.id);
             if (ai >= 0) this.units.splice(ai, 1);
+            if (DBG()) slog('attacker destroyed by counter', { id: attacker.id });
           }
         }
         // XP for defender for engaging in combat and surviving to counter
