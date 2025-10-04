@@ -250,6 +250,31 @@ export class Renderer {
         ctx.lineWidth = 2;
         ctx.strokeRect(6, 6, T - 12, T - 12);
       }
+
+      // Shield icon when stacked on a friendly bunker
+      if (onFriendlyBunker) {
+        const ix = T - 20; const iy = 6; // top-right corner area
+        ctx.save();
+        // Shield shape
+        ctx.beginPath();
+        ctx.moveTo(ix + 8, iy); // top
+        ctx.lineTo(ix + 14, iy + 5);
+        ctx.lineTo(ix + 14, iy + 12);
+        ctx.lineTo(ix + 8, iy + 16);
+        ctx.lineTo(ix + 2, iy + 12);
+        ctx.lineTo(ix + 2, iy + 5);
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(194,178,128,0.9)'; // khaki
+        ctx.strokeStyle = '#6e5e3a';
+        ctx.lineWidth = 1;
+        ctx.fill();
+        ctx.stroke();
+        // Cross/crest
+        ctx.fillStyle = 'rgba(0,0,0,0.25)';
+        ctx.fillRect(ix + 7, iy + 3, 2, 10);
+        ctx.fillRect(ix + 4, iy + 7, 8, 2);
+        ctx.restore();
+      }
       ctx.restore();
     }
   }

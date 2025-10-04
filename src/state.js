@@ -110,7 +110,7 @@ export class GameState {
   canSpawnAt(x, y) {
     const { x: bx, y: by } = this.bases[this.currentPlayer];
     const dx = Math.abs(x - bx), dy = Math.abs(y - by);
-    const nearBase = (dx + dy) <= 1; // base tile or orthogonal neighbor
+    const nearBase = Math.max(dx, dy) <= 1; // base tile or any adjacent (including diagonals)
     return this.isInside(x, y) && nearBase && !this.tileOccupied(x, y);
   }
 
@@ -121,24 +121,20 @@ export class GameState {
   getValidSpawnTiles() {
     const tiles = [];
     const { x: bx, y: by } = this.bases[this.currentPlayer];
-    const candidates = [
-      { x: bx, y: by },
-      { x: bx + 1, y: by },
-      { x: bx - 1, y: by },
-      { x: bx, y: by + 1 },
-      { x: bx, y: by - 1 },
-    ];
-    for (const t of candidates) {
-      if (!this.isInside(t.x, t.y)) continue;
-      if (this.spawnQueue && this.spawnQueue.kind === 'unit') {
-        // Allow spawn onto friendly bunker as well
-        const unitTileBlocked = this.units.some(u => u.x === t.x && u.y === t.y);
-        const fort = this.forts.find(f => f.x === t.x && f.y === t.y);
-        if (!unitTileBlocked && (!fort || (fort.type === 'Bunker' && fort.player === this.currentPlayer))) {
-          tiles.push(t);
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dy = -1; dy <= 1; dy++) {
+        const x = bx + dx, y = by + dy;
+        if (!this.isInside(x, y)) continue;
+        if (this.spawnQueue && this.spawnQueue.kind === 'unit') {
+          // Allow spawn onto friendly bunker as well
+          const unitTileBlocked = this.units.some(u => u.x === x && u.y === y);
+          const fort = this.forts.find(f => f.x === x && f.y === y);
+          if (!unitTileBlocked && (!fort || (fort.type === 'Bunker' && fort.player === this.currentPlayer))) {
+            tiles.push({ x, y });
+          }
+        } else {
+          if (this.canSpawnAt(x, y)) tiles.push({ x, y });
         }
-      } else {
-        if (this.canSpawnAt(t.x, t.y)) tiles.push(t);
       }
     }
     return tiles;
@@ -167,10 +163,10 @@ export class GameState {
     if (!this.spawnQueue) return false;
     const id = this.nextId();
     if (this.spawnQueue.kind === 'unit') {
-      // For units: allow spawning onto friendly bunker near base
+      // For units: allow spawning onto friendly bunker near base (including diagonals)
       const { x: bx, y: by } = this.bases[this.currentPlayer];
       const dx = Math.abs(x - bx), dy = Math.abs(y - by);
-      const nearBase = (dx + dy) <= 1;
+      const nearBase = Math.max(dx, dy) <= 1;
       if (!nearBase || !this.isInside(x, y)) return false;
       if (this.units.some(u => u.x === x && u.y === y)) return false;
       const fort = this.forts.find(f => f.x === x && f.y === y);
@@ -244,6 +240,8 @@ export class GameState {
     });
     // Fortifications end-of-turn effects (pillbox auto-fire)
     this.pillboxAutoFire();
+    // Garrisoned units auto-attack nearby enemies (adjacent) while on friendly bunker
+    this.garrisonAutoAttack();
     // Medics heal nearby friendlies
     this.medicAutoHeal();
     // Income (base income + SupplyDepot yield for the next player)
@@ -258,6 +256,26 @@ export class GameState {
     this.selectedId = null;
     this.spawnQueue = null;
     this.buildQueue = null;
+  }
+
+  // Units standing on a friendly bunker auto-attack adjacent enemy units
+  garrisonAutoAttack() {
+    const deltas = [
+      {dx:1,dy:0},{dx:-1,dy:0},{dx:0,dy:1},{dx:0,dy:-1},
+      {dx:1,dy:1},{dx:1,dy:-1},{dx:-1,dy:1},{dx:-1,dy:-1},
+    ];
+    for (const u of this.units) {
+      if (!this.isFriendlyBunkerAt(u.x, u.y, u.player)) continue;
+      for (const d of deltas) {
+        const tx = u.x + d.dx, ty = u.y + d.dy;
+        if (!this.isInside(tx, ty)) continue;
+        const enemy = this.units.find(e => e.player !== u.player && e.x === tx && e.y === ty);
+        if (!enemy) continue;
+        // Fire a suppressed counter attack using a temp attacker (does not consume the unit's action)
+        const temp = { ...u, acted: false };
+        this.attack(temp, enemy, { suppressCounter: true });
+      }
+    }
   }
 
   selectUnitAt(x, y) {
