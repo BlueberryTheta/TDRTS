@@ -67,14 +67,14 @@ export class HttpMPClient {
   async connect(){ this.dlog('ready'); }
   async createRoom(){
     const res = await fetch('/api/mp/room', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'create' }) });
-    const data = await res.json(); if(data.error) throw new Error(data.error);
+    const data = await res.json(); if(data.error) throw new Error(data.message || data.error);
     this.roomId = data.roomId; this.player = data.player; this.emit('room', { roomId: this.roomId, player: this.player, players: data.players, using: data.using });
     if (data.snapshot) this.emit('snapshot', { type:'snapshot', state: data.snapshot });
     this.startPolling();
   }
   async joinRoom(roomId){
     const res = await fetch('/api/mp/room', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'join', roomId }) });
-    const data = await res.json(); if(data.error) throw new Error(data.error);
+    const data = await res.json(); if(data.error) throw new Error(data.message || data.error);
     this.roomId = data.roomId; this.player = data.player; this.emit('room', { roomId: this.roomId, player: this.player, players: data.players, using: data.using });
     if (data.snapshot) this.emit('snapshot', { type:'snapshot', state: data.snapshot });
     this.startPolling();
@@ -82,7 +82,7 @@ export class HttpMPClient {
   async action(msg){
     this.dlog('action', msg);
     const res = await fetch('/api/mp/action', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ roomId: this.roomId, player: this.player, action: msg }) });
-    const data = await res.json(); if(data.error) { this.dlog('action error', data.error); return; }
+    const data = await res.json(); if(data.error) { this.dlog('action error', data.message || data.error); return; }
     // event will be picked up by poller; nothing else to do
   }
   async snapshot(state){
