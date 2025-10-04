@@ -27,8 +27,15 @@ export async function createRoom() { return await getOrCreateRoom(null); }
 
 export async function joinRoom(roomId) {
   // Fetch existing room only; do not create on join
-  const r = await getRoom(roomId);
+  let r = await getRoom(roomId);
   if (!r) return { error: 'Invalid code' };
+  // Wait briefly if creator has not finalized players=1 yet
+  let attempts = 0;
+  while (Number(r.players) === 0 && attempts < 10) {
+    await new Promise(res => setTimeout(res, 100));
+    r = await getRoom(roomId);
+    attempts++;
+  }
   const room = { id: r.id, players: Number(r.players), currentPlayer: Number(r.current_player), lastSnapshot: r.last_snapshot, seq: Number(r.seq) };
   if (room.players === 0) return { error: 'Room not ready' };
   if (room.players >= 2) return { error: 'Room full' };
