@@ -188,10 +188,11 @@ export class Renderer {
 
   drawUnits() {
     const { ctx, T } = this;
+    const dbg = (typeof window !== 'undefined' && window.DEBUG === true);
     for (const u of this.game.units) {
       // Hide enemy units in fog
       const current = this.game.currentPlayer;
-      if (u.player !== current && !this.game.isTileVisibleTo(current, u.x, u.y)) continue;
+      if (!dbg && u.player !== current && !this.game.isTileVisibleTo(current, u.x, u.y)) continue;
       ctx.save();
       // Shake effect if recently hit
       let shakeX = 0, shakeY = 0;
@@ -294,6 +295,8 @@ export class Renderer {
 
   drawFog() {
     const { ctx, T } = this;
+    const dbg = (typeof window !== 'undefined' && window.DEBUG === true);
+    if (dbg) return; // disable fog overlay in debug mode
     const current = this.game.currentPlayer;
     // Ensure visibility is up to date
     if (typeof this.game.recomputeVisibility === 'function') this.game.recomputeVisibility();
