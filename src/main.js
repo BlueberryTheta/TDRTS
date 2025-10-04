@@ -496,8 +496,15 @@ async function initMultiplayer() {
         mpClient.snapshot(buildSnapshot());
       }
     } catch {}
+    try { window.__lastEvtSeq = typeof msg.seq === 'number' ? msg.seq : (window.__lastEvtSeq || null); } catch {}
   });
   mpClient.on('request_state', () => { mpClient.snapshot(buildSnapshot()); });
+  if (typeof mpClient.on === 'function') {
+    mpClient.on('error', (err) => {
+      console.error('[MP ERROR]', err?.type || 'unknown', err?.status || '', err?.message || '');
+      try { window.__lastMpError = err; } catch {}
+    });
+  }
   if (typeof mpClient.on === 'function') {
     mpClient.on('players', (n) => { dlog('Players update', n); window.mpPlayers = n; });
   }

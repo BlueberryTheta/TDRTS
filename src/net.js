@@ -81,8 +81,21 @@ export class HttpMPClient {
   }
   async action(msg){
     this.dlog('action', msg);
-    const res = await fetch('/api/mp/action', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ roomId: this.roomId, player: this.player, action: msg }) });
-    const data = await res.json(); if(data.error) { this.dlog('action error', data.message || data.error); return; }
+    let res, data;
+    try {
+      res = await fetch('/api/mp/action', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ roomId: this.roomId, player: this.player, action: msg }) });
+      data = await res.json().catch(() => ({}));
+    } catch (e) {
+      this.dlog('action network error', e);
+      this.emit('error', { type:'action', error: 'network', message: String(e) });
+      return;
+    }
+    if (!res.ok || data?.error) {
+      const msgText = data?.message || data?.error || `HTTP ${res.status}`;
+      this.dlog('action error', msgText);
+      this.emit('error', { type:'action', status: res.status, message: msgText, action: msg });
+      return;
+    }
     // event will be picked up by poller; nothing else to do
   }
   async snapshot(state){
