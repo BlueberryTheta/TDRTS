@@ -112,6 +112,16 @@ export async function getCurrentPlayer(roomId) {
   }
 }
 
+export async function setPlayers(roomId, n) {
+  if (hasNeon()) {
+    const room = await getOrCreateRoom(roomId);
+    await upsertRoom({ id: room.id, players: n, current_player: room.currentPlayer, last_snapshot: room.lastSnapshot, seq: room.seq });
+  } else {
+    const room = await getOrCreateRoom(roomId);
+    room.players = n;
+  }
+}
+
 export async function getPlayers(roomId) {
   if (hasNeon()) {
     const room = await getOrCreateRoom(roomId);
