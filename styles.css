@@ -91,6 +91,14 @@ li { margin: 4px 0; }
 .hud-button { background: #b08d57; border: 1px solid #8b6b3b; border-radius: 8px; padding: 6px 12px; color: #fff; cursor: pointer; }
 .hud-button:hover { filter: brightness(1.07); }
 
+/* Banner */
+.banner { display: flex; align-items: center; gap: 10px; margin: 6px 8px; padding: 6px 10px; background: linear-gradient(180deg, var(--panel-olive), var(--panel-olive-2)); border: 1px solid #20261f; border-radius: 10px; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.35); }
+
+/* MP controls */
+.mp-grid { display: grid; grid-template-columns: repeat(2, minmax(220px, 1fr)); gap: 12px; }
+.mp-card { background: rgba(0,0,0,0.2); border: 1px solid rgba(0,0,0,0.35); border-radius: 10px; padding: 10px; }
+.input { background: #0f1419; color: var(--text); border: 1px solid #30363d; border-radius: 6px; padding: 6px 8px; min-width: 140px; }
+
 /* Accordion details styling */
 details.accordion > summary {
   cursor: pointer; user-select: none; list-style: none; outline: none; padding: 6px 0; color: var(--accent-khaki);
@@ -108,6 +116,7 @@ details.accordion[open] > summary::after { content: '▾'; }
   #left { padding: 8px; }
   #right { padding: 8px 10px; }
   #gameCanvas { width: 100%; height: auto; border-width: 1px; }
+  #roomBanner { margin: 4px 8px; }
   /* Make shop horizontally scrollable ribbons to reduce vertical space */
   .shop-grid { grid-auto-flow: column; grid-auto-columns: minmax(140px, 1fr); overflow-x: auto; grid-template-columns: none; }
   .shop-item { padding: 10px; }

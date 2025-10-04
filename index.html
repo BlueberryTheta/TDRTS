@@ -16,6 +16,16 @@
         <div class="hud-spacer"></div>
         <button id="endTurnTop" class="hud-button">End Turn</button>
       </div>
+      <div id="roomBanner" class="banner" style="display:none">
+        <div class="banner-left">
+          <span class="hud-label">Room</span>
+          <span id="roomCode" class="hud-pill">-</span>
+          <span class="hud-label" style="margin-left:10px">You</span>
+          <span id="playerLabel" class="hud-pill">P1</span>
+        </div>
+        <div class="hud-spacer"></div>
+        <button id="copyLinkBtn" class="hud-button" title="Copy invite link">Copy Link</button>
+      </div>
       <div id="left">
         <canvas id="gameCanvas" width="640" height="640"></canvas>
       </div>
@@ -113,9 +123,34 @@
           <button id="playVsAi" class="hud-button">Play vs Computer</button>
           <button id="playOnline" class="hud-button">Play Online (Friend)</button>
         </div>
+        <div id="mpControls" style="display:none; margin-top:12px">
+          <div class="mp-grid">
+            <div class="mp-card">
+              <h3>Create Room</h3>
+              <p class="hint">Generate a room and share the link.</p>
+              <button id="createRoomBtn" class="hud-button">Create Room</button>
+              <div id="createdRoom" style="display:none; margin-top:8px">
+                <div class="hint">Room Code:</div>
+                <div class="stat-row">
+                  <span id="createdRoomCode" class="hud-pill">-</span>
+                  <button id="copyLinkBtnModal" class="hud-button">Copy Link</button>
+                </div>
+              </div>
+            </div>
+            <div class="mp-card">
+              <h3>Join Room</h3>
+              <p class="hint">Enter a room code from your friend.</p>
+              <div class="stat-row">
+                <input id="joinCodeInput" class="input" placeholder="Enter Code" maxlength="12" />
+                <button id="joinRoomBtn" class="hud-button">Join</button>
+              </div>
+              <div id="joinError" class="hint" style="color:#f85149; display:none;">Invalid code or room full.</div>
+            </div>
+          </div>
+        </div>
         <details id="mpInfo" class="accordion" style="margin-top:10px">
-          <summary>Online Multiplayer (preview)</summary>
-          <p class="hint">This prototype shows the flow. Next step is wiring a WebSocket server for rooms and turn sync.</p>
+          <summary>Online Multiplayer</summary>
+          <p class="hint">Create or join a room to play with a friend. Copy and share the invite link.</p>
         </details>
       </div>
     </div>

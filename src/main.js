@@ -148,7 +148,10 @@ if (!MODE) {
   modeModal.style.display = 'none';
 }
 if (playVsAiBtn) playVsAiBtn.onclick = () => setMode('ai');
-if (playOnlineBtn) playOnlineBtn.onclick = () => setMode('mp');
+if (playOnlineBtn) playOnlineBtn.onclick = () => {
+  const ctrls = document.getElementById('mpControls'); if (ctrls) ctrls.style.display='block';
+  setMode('mp');
+};
 
 function updateUI() {
   // avoid noisy per-frame logs; show when major fields change (optional: could be expanded)
@@ -364,6 +367,24 @@ function applyActionLocal(action, byPlayer, isRemote=false) {
   }
 }
 
+function buildInviteLink(roomId) {
+  const url = new URL(location.href);
+  url.searchParams.set('mode','mp');
+  if (roomId) url.searchParams.set('room', roomId);
+  return url.toString();
+}
+
+function showRoomBanner(roomId, player) {
+  const banner = document.getElementById('roomBanner');
+  const codeEl = document.getElementById('roomCode');
+  const playerEl = document.getElementById('playerLabel');
+  const copyBtn = document.getElementById('copyLinkBtn');
+  if (banner) banner.style.display = '';
+  if (codeEl) codeEl.textContent = roomId;
+  if (playerEl) playerEl.textContent = player === 0 ? 'P1' : 'P2';
+  if (copyBtn) copyBtn.onclick = () => navigator.clipboard?.writeText(buildInviteLink(roomId));
+}
+
 async function initMultiplayer() {
   const defaultWs = ((location.protocol === 'https:') ? 'wss://' : 'ws://') + location.host + '/api/ws';
   const wsUrl = (window.WS_URL || localStorage.getItem('WS_URL') || defaultWs);
@@ -387,18 +408,22 @@ async function initMultiplayer() {
   const roomFromUrl = urlParams.get('room');
   mpClient.on('room', ({ roomId, player }) => {
     dlog('Room joined', { roomId, player });
+    window.currentRoomId = roomId;
     // Show shareable URL
     if (info) {
       info.innerHTML = `<summary>Online Multiplayer</summary><div class="hint">Room: <strong>${roomId}</strong><br/>Share this link: <code>?mode=mp&room=${roomId}</code></div>`;
     }
     // If host, send initial snapshot
     if (player === 0) mpClient.snapshot(buildSnapshot());
+    // Update banner and close modal
+    showRoomBanner(roomId, player);
+    const modeEl = document.getElementById('modeModal'); if (modeEl) modeEl.style.display = 'none';
   });
   mpClient.on('snapshot', (msg) => { applySnapshot(msg); });
   mpClient.on('event', (msg) => { if (msg.action) applyActionLocal(msg.action, msg.player, /*remote*/true); if (typeof msg.currentPlayer === 'number') game.currentPlayer = msg.currentPlayer; });
   mpClient.on('request_state', () => { mpClient.snapshot(buildSnapshot()); });
 
-  if (roomFromUrl) mpClient.joinRoom(roomFromUrl); else await mpClient.createRoom();
+  if (roomFromUrl) mpClient.joinRoom(roomFromUrl); else wireMpControls();
 
   // Set hooks for input to send actions
   const hooks = {
@@ -433,17 +458,31 @@ async function initMultiplayer() {
   // Reattach input with hooks
   attachInput(canvas, TILE_SIZE, game, hooks);
 
-  // Provide simple create/join actions from modal buttons
-  const modeEl = document.getElementById('modeModal'); if (modeEl) modeEl.style.display = 'none';
-
-  // Simple join prompt
-  if (!roomFromUrl) {
-    const code = prompt('Enter room code to join, or leave blank to create');
-    if (code && code.trim()) { mpClient.joinRoom(code.trim()); document.getElementById('modeModal').style.display='none'; }
-    else { mpClient.createRoom(); document.getElementById('modeModal').style.display='none'; }
-  }
+  // No auto create/join; handled by UI
 }
 
-if (MODE === 'mp') {
-  initMultiplayer().catch(err => console.error('MP init failed', err));
+if (MODE === 'mp') { initMultiplayer().catch(err => console.error('MP init failed', err)); }
+
+function wireMpControls() {
+  const ctrls = document.getElementById('mpControls'); if (ctrls) ctrls.style.display='block';
+  const createBtn = document.getElementById('createRoomBtn');
+  const createdRoom = document.getElementById('createdRoom');
+  const createdRoomCode = document.getElementById('createdRoomCode');
+  const copyBtnModal = document.getElementById('copyLinkBtnModal');
+  const joinBtn = document.getElementById('joinRoomBtn');
+  const joinInput = document.getElementById('joinCodeInput');
+  const joinErr = document.getElementById('joinError');
+
+  if (createBtn) createBtn.onclick = async () => {
+    await mpClient.createRoom();
+    if (createdRoom) createdRoom.style.display = 'block';
+    if (createdRoomCode && window.currentRoomId) createdRoomCode.textContent = window.currentRoomId;
+  };
+  if (joinBtn) joinBtn.onclick = async () => {
+    const code = (joinInput?.value || '').trim();
+    if (!code) { if (joinErr) { joinErr.style.display='block'; joinErr.textContent='Enter a code.'; } return; }
+    try { await mpClient.joinRoom(code); if (joinErr) joinErr.style.display='none'; }
+    catch(e){ if (joinErr){ joinErr.style.display='block'; joinErr.textContent='Invalid code or room full.'; } }
+  };
+  if (copyBtnModal) copyBtnModal.onclick = () => { if (window.currentRoomId) navigator.clipboard?.writeText(buildInviteLink(window.currentRoomId)); };
 }
