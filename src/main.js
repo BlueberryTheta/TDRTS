@@ -482,12 +482,15 @@ function wireMpControls() {
   const joinErr = document.getElementById('joinError');
 
   if (createBtn) createBtn.onclick = async () => {
+    dlog('UI createRoom clicked');
     await mpClient.createRoom();
     if (createdRoom) createdRoom.style.display = 'block';
     if (createdRoomCode && window.currentRoomId) createdRoomCode.textContent = window.currentRoomId;
+    dlog('Room created currentRoomId=', window.currentRoomId);
   };
   if (joinBtn) joinBtn.onclick = async () => {
     const code = (joinInput?.value || '').trim();
+    dlog('UI joinRoom clicked code=', code);
     if (!code) { if (joinErr) { joinErr.style.display='block'; joinErr.textContent='Enter a code.'; } return; }
     try { await mpClient.joinRoom(code); if (joinErr) joinErr.style.display='none'; }
     catch(e){ if (joinErr){ joinErr.style.display='block'; joinErr.textContent='Invalid code or room full.'; } }

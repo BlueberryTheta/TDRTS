@@ -18,6 +18,7 @@ export default async function handler(req) {
     }
     if (body.action === 'create') {
       const room = await createRoom();
+      try { console.log('[MP/ROOM] created id', room.id); } catch {}
       // Ensure creator is Player 0 and players=1 atomically
       const set = await setPlayers(room.id, 1);
       const players = await getPlayers(room.id);
@@ -25,7 +26,9 @@ export default async function handler(req) {
       return json({ roomId: room.id, player: 0, players, snapshot: room.lastSnapshot, currentPlayer: room.currentPlayer, using: hasNeon() ? 'neon' : 'memory' });
     }
     if (body.action === 'join') {
-      const { roomId } = body;
+      let { roomId } = body;
+      roomId = (roomId || '').toString().trim().toUpperCase();
+      try { console.log('[MP/ROOM] normalized join code', roomId); } catch {}
       const res = await joinRoom(roomId);
       if (res.error) return json({ error: res.error }, 400);
       const { room, player } = res;
