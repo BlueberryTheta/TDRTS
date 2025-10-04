@@ -401,25 +401,28 @@ async function initMultiplayer() {
   const defaultWs = ((location.protocol === 'https:') ? 'wss://' : 'ws://') + location.host + '/api/ws';
   const wsUrl = (window.WS_URL || localStorage.getItem('WS_URL') || defaultWs);
   const forceWS = (window.FORCE_WS === true) || (localStorage.getItem('FORCE_WS') === '1');
-  // Prefer HTTP polling on Vercel to avoid cross-isolate WS state issues
-  const onVercel = /\.vercel\.app$/.test(location.hostname);
-  const preferHttp = onVercel && !forceWS;
-  dlog('MP init', { wsUrl, onVercel, forceWS, preferHttp });
+  // Prefer HTTP polling on any non-localhost host to avoid WS isolate issues in serverless
+  const isLocal = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname);
+  const preferHttp = !isLocal && !forceWS;
+  dlog('MP init', { wsUrl, host: location.hostname, forceWS, preferHttp });
   const { MultiplayerClient, HttpMPClient } = await import('./net.js');
 
   if (preferHttp) {
     mpClient = new HttpMPClient(location.origin);
     await mpClient.connect();
+    window.MP_TRANSPORT = 'http';
   } else {
     mpClient = new MultiplayerClient(wsUrl);
     try {
       await mpClient.connect();
       dlog('MP connected');
+      window.MP_TRANSPORT = 'ws';
     } catch (e) {
       console.error('MP WS connect failed, falling back to HTTP', e);
       // Fallback to HTTP MP
       mpClient = new HttpMPClient(location.origin);
       await mpClient.connect();
+      window.MP_TRANSPORT = 'http';
     }
   }
 
@@ -434,7 +437,8 @@ async function initMultiplayer() {
     window.currentRoomId = roomId;
     // Show shareable URL
     if (info) {
-      info.innerHTML = `<summary>Online Multiplayer</summary><div class="hint">Room: <strong>${roomId}</strong><br/>Share this link: <code>?mode=mp&room=${roomId}</code></div>`;
+      const using = (typeof window.MP_TRANSPORT === 'string') ? window.MP_TRANSPORT : 'unknown';
+      info.innerHTML = `<summary>Online Multiplayer</summary><div class="hint">Room: <strong>${roomId}</strong><br/>Share this link: <code>?mode=mp&room=${roomId}</code><br/>Transport: <strong>${using.toUpperCase()}</strong></div>`;
     }
     // If host, send initial snapshot
     if (player === 0) mpClient.snapshot(buildSnapshot());
@@ -505,17 +509,25 @@ function wireMpControls() {
 
   if (createBtn) createBtn.onclick = async () => {
     dlog('UI createRoom clicked');
-    await mpClient.createRoom();
-    if (createdRoom) createdRoom.style.display = 'block';
-    if (createdRoomCode && window.currentRoomId) createdRoomCode.textContent = window.currentRoomId;
-    dlog('Room created currentRoomId=', window.currentRoomId);
+    try {
+      await mpClient.createRoom();
+      if (createdRoom) createdRoom.style.display = 'block';
+      if (createdRoomCode && window.currentRoomId) createdRoomCode.textContent = window.currentRoomId;
+      dlog('Room created currentRoomId=', window.currentRoomId);
+    } catch (e) {
+      console.error('Create room failed', e);
+      if (createdRoom) {
+        createdRoom.style.display = 'block';
+        createdRoom.innerHTML = `<div class="hint" style="color:#f85149">Multiplayer backend unavailable. Configure HTTP MP or force WebSocket.</div>`;
+      }
+    }
   };
   if (joinBtn) joinBtn.onclick = async () => {
     const code = (joinInput?.value || '').trim();
     dlog('UI joinRoom clicked code=', code);
     if (!code) { if (joinErr) { joinErr.style.display='block'; joinErr.textContent='Enter a code.'; } return; }
     try { await mpClient.joinRoom(code); if (joinErr) joinErr.style.display='none'; }
-    catch(e){ if (joinErr){ joinErr.style.display='block'; joinErr.textContent='Invalid code or room full.'; } }
+    catch(e){ if (joinErr){ joinErr.style.display='block'; joinErr.textContent='Join failed: ' + (e?.message || 'Invalid code or server unavailable.'); } }
   };
   if (copyBtnModal) copyBtnModal.onclick = () => { if (window.currentRoomId) navigator.clipboard?.writeText(buildInviteLink(window.currentRoomId)); };
 }
