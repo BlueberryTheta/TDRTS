@@ -132,13 +132,16 @@ const playVsAiBtn = document.getElementById('playVsAi');
 const playOnlineBtn = document.getElementById('playOnline');
 function setMode(m) {
   MODE = m;
-  if (modeModal) modeModal.style.display = 'none';
   dlog('Mode set to', MODE);
   if (MODE === 'ai') {
+    if (modeModal) modeModal.style.display = 'none';
     // If it's AI's turn (player 2) for any reason, run AI
     maybeRunAI();
   } else if (MODE === 'mp') {
-    // Initialize multiplayer client
+    // Ensure modal stays open for create/join UI
+    if (modeModal) modeModal.style.display = 'flex';
+    const ctrls = document.getElementById('mpControls'); if (ctrls) ctrls.style.display='block';
+    // Initialize multiplayer client (will wire the controls)
     initMultiplayer().catch(err => console.error('MP init failed', err));
   }
 }
