@@ -4,6 +4,8 @@ export const runtime = 'edge';
 let sqlPromise = null;
 let inited = false;
 
+export function hasNeon() { return !!process.env.NEON_DATABASE_URL; }
+
 async function getSql() {
   if (sqlPromise) return sqlPromise;
   sqlPromise = (async () => {
