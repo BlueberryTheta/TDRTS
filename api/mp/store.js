@@ -26,19 +26,22 @@ export async function getOrCreateRoom(id) {
 export async function createRoom() { return await getOrCreateRoom(null); }
 
 export async function joinRoom(roomId) {
-  let room = await getOrCreateRoom(roomId);
+  // Fetch existing room only; do not create on join
+  const r = await getRoom(roomId);
+  if (!r) return { error: 'Invalid code' };
+  const room = { id: r.id, players: Number(r.players), currentPlayer: Number(r.current_player), lastSnapshot: r.last_snapshot, seq: Number(r.seq) };
   if (room.players === 0) return { error: 'Room not ready' };
   if (room.players >= 2) return { error: 'Room full' };
   // players must be 1 here; try atomic increment
   const after = await incPlayersIf(room.id, 1);
   if (after === 2) {
-    // assigned player index 1
     return { room: { ...room, players: after }, player: 1 };
   }
-  // If concurrent update happened, refetch and decide
-  room = await getOrCreateRoom(roomId);
-  if (room.players >= 2) return { room, player: 1 };
-  return { error: 'Room state changed, try again' };
+  // Race: re-check once
+  const check = await getRoom(roomId);
+  const cPlayers = Number(check?.players || 0);
+  if (cPlayers >= 2) return { room: { ...room, players: cPlayers }, player: 1 };
+  return { error: 'Busy, try again' };
 }
 
 export async function appendEvent(roomId, evt) {
@@ -74,11 +77,21 @@ export async function getCurrentPlayer(roomId) {
 }
 
 export async function setPlayers(roomId, n) {
-  const room = await getOrCreateRoom(roomId);
-  await upsertRoom({ id: room.id, players: n, current_player: room.currentPlayer, last_snapshot: room.lastSnapshot, seq: room.seq });
+  // atomic set only when transitioning from 0 to 1 on create
+  if (n === 1) {
+    const set = await setPlayersIf(roomId, 0, 1);
+    if (set !== 1) {
+      // fallback: ensure exists and update
+      const room = await getOrCreateRoom(roomId);
+      await upsertRoom({ id: room.id, players: n, current_player: room.currentPlayer, last_snapshot: room.lastSnapshot, seq: room.seq });
+    }
+  } else {
+    const room = await getOrCreateRoom(roomId);
+    await upsertRoom({ id: room.id, players: n, current_player: room.currentPlayer, last_snapshot: room.lastSnapshot, seq: room.seq });
+  }
 }
 
 export async function getPlayers(roomId) {
-  const room = await getOrCreateRoom(roomId);
-  return room.players;
+  const r = await getRoom(roomId);
+  return Number(r?.players || 0);
 }
