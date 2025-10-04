@@ -446,18 +446,21 @@ async function initMultiplayer() {
     mpClient = new HttpMPClient(location.origin);
     await mpClient.connect();
     window.MP_TRANSPORT = 'http';
+    try { window.__MP_CLIENT = mpClient; } catch {}
   } else {
     mpClient = new MultiplayerClient(wsUrl);
     try {
       await mpClient.connect();
       dlog('MP connected');
       window.MP_TRANSPORT = 'ws';
+      try { window.__MP_CLIENT = mpClient; } catch {}
     } catch (e) {
       console.error('MP WS connect failed, falling back to HTTP', e);
       if (await httpAvailable()) {
         mpClient = new HttpMPClient(location.origin);
         await mpClient.connect();
         window.MP_TRANSPORT = 'http';
+        try { window.__MP_CLIENT = mpClient; } catch {}
       } else {
         window.MP_TRANSPORT = 'unavailable';
       }

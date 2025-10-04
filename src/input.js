@@ -53,7 +53,21 @@ export function attachInput(canvas, tileSize, game, hooks) {
         game.spawnQueue = null; // await server
         return;
       } else {
+        const q = game.spawnQueue; // capture before trySpawnAt clears it
         const spawned = game.trySpawnAt(x, y);
+        // If in MP and we locally spawned due to missing hooks, send the action now
+        if (spawned && typeof window !== 'undefined' && window.__MP_CLIENT) {
+          try {
+            const spawnType = q?.kind;
+            if (spawnType === 'unit') {
+              console.log('HOOK spawn (fallback)', { kind: 'unit', unitType: q.unitType.name, x, y });
+              window.__MP_CLIENT.action({ kind: 'spawn', spawnType: 'unit', unitType: q.unitType.name, x, y });
+            } else if (spawnType === 'fort') {
+              console.log('HOOK spawn (fallback)', { kind: 'fort', fortType: q.fortType.name, x, y });
+              window.__MP_CLIENT.action({ kind: 'spawn', spawnType: 'fort', fortType: q.fortType.name, x, y });
+            }
+          } catch {}
+        }
         if (spawned) return; // done
         // If invalid, fall through to normal handling (to allow selection)
       }
@@ -90,6 +104,9 @@ export function attachInput(canvas, tileSize, game, hooks) {
           hk.attack(sel.id, x, y);
         } else {
           game.attack(sel, enemy || fort);
+          if (typeof window !== 'undefined' && window.__MP_CLIENT) {
+            try { console.log('HOOK attack (fallback)', { attackerId: sel.id, x, y }); window.__MP_CLIENT.action({ kind: 'attack', attackerId: sel.id, x, y }); } catch {}
+          }
         }
         return;
       }
@@ -106,6 +123,9 @@ export function attachInput(canvas, tileSize, game, hooks) {
           const ok = game.moveUnitTo(sel, x, y);
           // If carrying flag and on base, check capture now
           game.checkFlagCapture(sel);
+          if (ok && typeof window !== 'undefined' && window.__MP_CLIENT) {
+            try { console.log('HOOK move (fallback)', { unitId: sel.id, x, y }); window.__MP_CLIENT.action({ kind: 'move', unitId: sel.id, x, y }); } catch {}
+          }
         }
         return;
       }
