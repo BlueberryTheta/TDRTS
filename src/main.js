@@ -489,7 +489,7 @@ async function initMultiplayer() {
   });
   mpClient.on('snapshot', (msg) => { applySnapshot(msg); });
   mpClient.on('event', (msg) => {
-    if (msg.action) dlog('Apply remote event', msg.action?.kind, 'by', msg.player, 'seq', msg.seq, 'cp', msg.currentPlayer);
+    if (msg.action) { try { console.log('Apply remote event', msg.action?.kind, 'by', msg.player, 'seq', msg.seq, 'cp', msg.currentPlayer); } catch {} }
     if (msg.action) applyActionLocal(msg.action, msg.player, /*remote*/true);
     if (typeof msg.currentPlayer === 'number') game.currentPlayer = msg.currentPlayer;
     // If this was our own endTurn event echoed back, persist a snapshot after applying
@@ -517,7 +517,7 @@ async function initMultiplayer() {
   const hooks = {
     spawn: ({ kind, unitType, fortType, x, y }) => {
       if (game.currentPlayer !== mpClient.player) return;
-      dlog('HOOK spawn', { kind, unitType, fortType, x, y });
+      try { console.log('HOOK spawn', { kind, unitType, fortType, x, y }); } catch {}
       const spawnType = kind; // 'unit' or 'fort'
       mpClient.action({ kind: 'spawn', spawnType, unitType, fortType, x, y });
       // Apply locally
@@ -529,7 +529,7 @@ async function initMultiplayer() {
     },
     buildFort: (fortType, engineerId, x, y) => {
       if (game.currentPlayer !== mpClient.player) return;
-      dlog('HOOK buildFort', { fortType, engineerId, x, y });
+      try { console.log('HOOK buildFort', { fortType, engineerId, x, y }); } catch {}
       mpClient.action({ kind: 'buildFort', fortType, engineerId, x, y });
       game.selectedId = engineerId; const ft = FORT_TYPES[fortType]; game.queueFortBuild(ft); game.tryBuildAt(x, y);
       try { window.__lastLocalApplyTs = Date.now(); } catch {}
@@ -537,7 +537,7 @@ async function initMultiplayer() {
     },
     move: (unitId, x, y) => {
       if (game.currentPlayer !== mpClient.player) return;
-      dlog('HOOK move', { unitId, x, y });
+      try { console.log('HOOK move', { unitId, x, y }); } catch {}
       mpClient.action({ kind: 'move', unitId, x, y });
       const u = game.getUnitById(unitId); if (u) { game.moveUnitTo(u, x, y); game.checkFlagCapture(u); }
       try { window.__lastLocalApplyTs = Date.now(); } catch {}
@@ -545,7 +545,7 @@ async function initMultiplayer() {
     },
     attack: (attackerId, x, y) => {
       if (game.currentPlayer !== mpClient.player) return;
-      dlog('HOOK attack', { attackerId, x, y });
+      try { console.log('HOOK attack', { attackerId, x, y }); } catch {}
       mpClient.action({ kind: 'attack', attackerId, x, y });
       const a = game.getUnitById(attackerId); const enemy = game.getEnemyAt(x, y) || game.getFortAt(x, y); if (a && enemy) game.attack(a, enemy);
       try { window.__lastLocalApplyTs = Date.now(); } catch {}
