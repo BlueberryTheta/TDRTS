@@ -25,7 +25,7 @@ export class Renderer {
     const W = this.game.w * T;
     const H = this.game.h * T;
     // Grid lines
-    ctx.strokeStyle = 'rgba(18, 61, 18, 0.4)'; // translucent dark green
+    ctx.strokeStyle = 'rgba(28, 99, 28, 0.7)'; // stronger translucent dark green
     ctx.lineWidth = 1;
     for (let x = 0; x <= this.game.w; x++) {
       ctx.beginPath();
@@ -256,13 +256,14 @@ export class Renderer {
 
   draw() {
     this.drawBackground();
-    this.drawGridLines();
     this.drawSpawnHints();
     this.drawForts();
     this.drawRanges();
     this.drawBasesAndFlags();
     this.drawUnits();
     this.drawFog();
+    // Draw grid lines last to ensure visibility on top of fog/background
+    this.drawGridLines();
     this.drawEffects();
   }
 
