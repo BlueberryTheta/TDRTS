@@ -130,3 +130,18 @@ export async function listEventsSince(id, since) {
   const rows = await sql`SELECT seq, data FROM events WHERE room_id = ${id} AND seq > ${since} ORDER BY seq ASC LIMIT 500`;
   return rows.map(r => ({ seq: Number(r.seq), ...r.data }));
 }
+
+// Atomic player assignment helpers
+export async function setPlayersIf(id, expected, newVal) {
+  const sql = await getSql(); if (!sql) return 0;
+  await initTables();
+  const rows = await sql`UPDATE rooms SET players = ${newVal} WHERE id = ${id} AND players = ${expected} RETURNING players`;
+  return Number(rows[0]?.players || 0);
+}
+
+export async function incPlayersIf(id, expected) {
+  const sql = await getSql(); if (!sql) return 0;
+  await initTables();
+  const rows = await sql`UPDATE rooms SET players = players + 1 WHERE id = ${id} AND players = ${expected} RETURNING players`;
+  return Number(rows[0]?.players || 0);
+}

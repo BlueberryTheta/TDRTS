@@ -1,7 +1,7 @@
 export const config = { runtime: 'edge' };
 export const runtime = 'edge';
 
-import { hasNeon, isSqlAvailable, initTables, getRoom, upsertRoom, createRoomRow, nextSeq, appendEventRow, listEventsSince } from './db.js';
+import { hasNeon, isSqlAvailable, initTables, getRoom, upsertRoom, createRoomRow, nextSeq, appendEventRow, listEventsSince, setPlayersIf, incPlayersIf } from './db.js';
 
 function rnd(n = 6) {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -27,11 +27,18 @@ export async function createRoom() { return await getOrCreateRoom(null); }
 
 export async function joinRoom(roomId) {
   let room = await getOrCreateRoom(roomId);
+  if (room.players === 0) return { error: 'Room not ready' };
   if (room.players >= 2) return { error: 'Room full' };
-  const player = room.players;
-  room.players += 1;
-  await upsertRoom({ id: room.id, players: room.players, current_player: room.currentPlayer, last_snapshot: room.lastSnapshot, seq: room.seq });
-  return { room, player };
+  // players must be 1 here; try atomic increment
+  const after = await incPlayersIf(room.id, 1);
+  if (after === 2) {
+    // assigned player index 1
+    return { room: { ...room, players: after }, player: 1 };
+  }
+  // If concurrent update happened, refetch and decide
+  room = await getOrCreateRoom(roomId);
+  if (room.players >= 2) return { room, player: 1 };
+  return { error: 'Room state changed, try again' };
 }
 
 export async function appendEvent(roomId, evt) {

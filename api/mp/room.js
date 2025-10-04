@@ -18,9 +18,10 @@ export default async function handler(req) {
     }
     if (body.action === 'create') {
       const room = await createRoom();
-      // Ensure creator is Player 0 and players=1
-      await setPlayers(room.id, 1);
+      // Ensure creator is Player 0 and players=1 atomically
+      const set = await setPlayers(room.id, 1);
       const players = await getPlayers(room.id);
+      try { console.log('[MP/ROOM] created', room.id, 'players=', players, 'set=', set); } catch {}
       return json({ roomId: room.id, player: 0, players, snapshot: room.lastSnapshot, currentPlayer: room.currentPlayer, using: hasNeon() ? 'neon' : 'memory' });
     }
     if (body.action === 'join') {
@@ -29,6 +30,7 @@ export default async function handler(req) {
       if (res.error) return json({ error: res.error }, 400);
       const { room, player } = res;
       const players = await getPlayers(room.id);
+      try { console.log('[MP/ROOM] joined', room.id, 'assigned=', player, 'players=', players); } catch {}
       return json({ roomId: room.id, player, players, snapshot: await getSnapshot(room.id), currentPlayer: await getCurrentPlayer(room.id), using: hasNeon() ? 'neon' : 'memory' });
     }
     return json({ error: 'Bad Request' }, 400);
