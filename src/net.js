@@ -119,8 +119,8 @@ export class HttpMPClient {
         if (!hasEvents && typeof data.currentPlayer === 'number') {
           this.emit('event', { type:'event', player: null, seq: this.seq, currentPlayer: data.currentPlayer });
         }
-        // Emit snapshot after events to avoid overriding fresh event-applied state.
-        if (data.snapshot && (!hasEvents || this.seq === 0)) {
+        // Only apply snapshot on initial sync (seq === 0). Avoid applying later to prevent stale rollbacks.
+        if (data.snapshot && this.seq === 0) {
           this.emit('snapshot', { type:'snapshot', state: data.snapshot });
         }
         if (typeof data.players === 'number') this.emit('players', data.players);
