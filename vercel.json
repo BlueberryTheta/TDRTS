@@ -3,6 +3,8 @@
   "trailingSlash": false,
   "headers": [
     { "source": "/(.*)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }] }
-  ]
+  ],
+  "functions": {
+    "api/ws.js": { "runtime": "edge" }
+  }
 }
-
