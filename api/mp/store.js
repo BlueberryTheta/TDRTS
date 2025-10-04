@@ -1,7 +1,7 @@
 export const config = { runtime: 'edge' };
 export const runtime = 'edge';
 
-import { hasNeon, initTables, getRoom, upsertRoom, createRoomRow, nextSeq, appendEventRow, listEventsSince } from './db.js';
+import { hasNeon, isSqlAvailable, initTables, getRoom, upsertRoom, createRoomRow, nextSeq, appendEventRow, listEventsSince } from './db.js';
 
 // Simple in-memory store for fallback if Neon not configured
 const memRooms = new Map();
@@ -131,20 +131,20 @@ export async function getCurrentPlayer(roomId) {
 
 export async function setPlayers(roomId, n) {
   if (hasNeon()) {
-    const room = await getOrCreateRoom(roomId);
-    await upsertRoom({ id: room.id, players: n, current_player: room.currentPlayer, last_snapshot: room.lastSnapshot, seq: room.seq });
-  } else {
-    const room = await getOrCreateRoom(roomId);
-    room.players = n;
+    try {
+      const room = await getOrCreateRoom(roomId);
+      await upsertRoom({ id: room.id, players: n, current_player: room.currentPlayer, last_snapshot: room.lastSnapshot, seq: room.seq });
+      return;
+    } catch {}
   }
+  const room = await getOrCreateRoom(roomId);
+  room.players = n;
 }
 
 export async function getPlayers(roomId) {
   if (hasNeon()) {
-    const room = await getOrCreateRoom(roomId);
-    return room.players;
-  } else {
-    const room = await getOrCreateRoom(roomId);
-    return room.players;
+    try { const room = await getOrCreateRoom(roomId); return room.players; } catch {}
   }
+  const room = await getOrCreateRoom(roomId);
+  return room.players;
 }
