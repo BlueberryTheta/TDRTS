@@ -17,6 +17,7 @@
           <div>Current Player: <span id="currentPlayer">1</span></div>
           <div>Money: $<span id="money">0</span></div>
           <div>Turn: <span id="turn">1</span></div>
+          <div>Timer: <span id="timer">20.0</span>s</div>
         </div>
         <hr />
         <div id="shop" class="panel">
@@ -53,14 +54,17 @@
           <div id="unitInfo" style="display:none">
             <div class="stat-row"><strong id="unitName"></strong> <span id="unitOwner" class="hint"></span> <span id="unitRankBadge" class="badge" style="margin-left:auto">Private</span></div>
             <div class="stat-row"><span style="width:40px">HP</span><div id="unitHpBar" class="bar"><div class="bar-fill" style="width:0%"></div></div><span id="unitHP" class="hint"></span></div>
-            <div id="unitStats">ATK: -, DEF: -, MOVE: -, RNG: -, SIGHT: -</div>
-            <div id="unitXP">XP: 0 (<span id="unitRank">Private</span>)</div>
-            <div id="unitAbilities">Abilities: -</div>
+            <details class="accordion">
+              <summary>Details</summary>
+              <div id="unitStats">ATK: -, DEF: -, MOVE: -, RNG: -, SIGHT: -</div>
+              <div id="unitXP">XP: 0 (<span id="unitRank">Private</span>)</div>
+              <div id="unitAbilities">Abilities: -</div>
+            </details>
           </div>
         </div>
         <hr />
-        <div id="legend">
-          <h2>Legend</h2>
+        <details id="legend" class="panel accordion">
+          <summary>Legend</summary>
           <div class="legend-row"><span class="legend-swatch p1"></span> Player 1 Units</div>
           <div class="legend-row"><span class="legend-swatch p2"></span> Player 2 Units</div>
           <div class="legend-row"><span class="legend-swatch base"></span> Base (Flag starts here)</div>
@@ -69,18 +73,18 @@
           <div class="legend-row"><span class="legend-swatch fort"></span> Fortification</div>
           <div class="legend-row"><span class="legend-swatch move"></span> Move Range</div>
           <div class="legend-row"><span class="legend-swatch atk"></span> Attack Range</div>
-        </div>
+        </details>
         <hr />
-        <div id="help">
-          <h2>How To Play</h2>
+        <details id="help" class="panel accordion">
+          <summary>How To Play</summary>
           <ul>
             <li>Two players take turns on the same device.</li>
-            <li>Earn $50 each turn. Buy units and spawn near your base.</li>
+            <li>Earn $60 each turn. Buy units and spawn near your base.</li>
             <li>Select your unit, click a highlighted tile to move.</li>
             <li>Click an enemy in range to attack.</li>
             <li>Capture the enemy flag by moving onto it, then bring it back to your base.</li>
           </ul>
-        </div>
+        </details>
       </div>
     </div>
     <script type="module" src="src/main.js"></script>

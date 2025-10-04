@@ -82,14 +82,27 @@ li { margin: 4px 0; }
 #endTurn { background: #b08d57; border-color: #8b6b3b; }
 #endTurn:hover { filter: brightness(1.07); }
 
+/* Accordion details styling */
+details.accordion > summary {
+  cursor: pointer; user-select: none; list-style: none; outline: none; padding: 6px 0; color: var(--accent-khaki);
+}
+details.accordion > summary::-webkit-details-marker { display: none; }
+details.accordion[open] > summary { color: var(--text); }
+details.accordion > summary::after {
+  content: '▸'; display: inline-block; margin-left: 6px; transform: translateY(-1px);
+}
+details.accordion[open] > summary::after { content: '▾'; }
+
 /* Mobile responsive layout */
 @media (max-width: 900px) {
   #app { flex-direction: column; }
   #left { padding: 8px; }
   #right { padding: 8px 10px; }
   #gameCanvas { width: 100%; height: auto; border-width: 1px; }
-  .shop-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* Make shop horizontally scrollable ribbons to reduce vertical space */
+  .shop-grid { grid-auto-flow: column; grid-auto-columns: minmax(140px, 1fr); overflow-x: auto; grid-template-columns: none; }
   .shop-item { padding: 10px; }
   button, .shop-item { font-size: 14px; }
   #actions { position: sticky; bottom: 0; z-index: 5; }
+  #status { position: sticky; top: 0; z-index: 6; background: var(--panel-olive); border-bottom: 1px solid #20261f; }
 }

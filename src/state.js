@@ -358,6 +358,11 @@ export class GameState {
     // Compute damage with bunker cover if target is a unit standing on friendly bunker
     const atkBonus = attacker.fort ? 0 : (rankForXP(attacker.xp || 0).level + this.getOfficerBonus(attacker)); // forts don't level
     let dmg = (attacker.atk || 0) + atkBonus;
+    // Pillbox damage adjustments based on target armor
+    if (attacker.fort && attacker.type === 'Pillbox' && !target.fort) {
+      const armored = target.type === 'Tank' || target.type === 'MechanizedInfantry';
+      if (armored) dmg = Math.max(1, dmg - 2); else dmg += 1;
+    }
     // Engineer anti-tank bonus when attacking tanks
     if (!target.fort && attacker.type === 'Engineer' && target.type === 'Tank') {
       dmg += 2;

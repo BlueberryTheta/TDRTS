@@ -102,10 +102,33 @@ function decorateShop() {
 }
 decorateShop();
 
+// Expand accordions on desktop by default
+function setAccordionsOpenByViewport() {
+  const open = window.innerWidth > 900;
+  document.querySelectorAll('details.accordion').forEach((d) => {
+    if (open) d.setAttribute('open', ''); else d.removeAttribute('open');
+  });
+}
+setAccordionsOpenByViewport();
+window.addEventListener('resize', () => {
+  setAccordionsOpenByViewport();
+});
+
 function updateUI() {
   ui.currentPlayer.textContent = String(game.currentPlayer + 1);
   ui.money.textContent = String(game.money[game.currentPlayer]);
   ui.turn.textContent = String(game.turn);
+  // Timer
+  const timerEl = document.getElementById('timer');
+  if (timerEl && turnDeadlineMs > 0) {
+    if (game.currentPlayer === HUMAN_PLAYER) {
+      const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+      const remaining = Math.max(0, turnDeadlineMs - now);
+      timerEl.textContent = (remaining / 1000).toFixed(1);
+    } else {
+      timerEl.textContent = 'AI';
+    }
+  }
   // Selected unit panel
   const info = document.getElementById('unitInfo');
   const none = document.getElementById('unitNone');
@@ -212,8 +235,65 @@ async function maybeRunAI() {
     console.error('AI turn error:', err);
   } finally {
     setUIEnabled(true);
+    // After AI completes, reset timer for human
+    resetTurnTimerIfNeeded();
   }
 }
 
 // If for any reason AI starts, ensure it runs
 maybeRunAI();
+
+// --- Turn Timer (10 seconds for human turns) ---
+const HUMAN_PLAYER = 0;
+let turnDeadlineMs = 0;
+let lastPlayer = game.currentPlayer;
+let timerExpiredHandled = false;
+
+function resetTurnTimer() {
+  if (game.currentPlayer === HUMAN_PLAYER) {
+    const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    turnDeadlineMs = now + 20000; // 20 seconds
+    timerExpiredHandled = false;
+  } else {
+    turnDeadlineMs = 0;
+    timerExpiredHandled = false;
+  }
+}
+
+function resetTurnTimerIfNeeded() {
+  if (game.currentPlayer !== lastPlayer) {
+    lastPlayer = game.currentPlayer;
+    resetTurnTimer();
+  }
+}
+
+// Hook end turn button to also reset timer post-switch
+ui.endTurn.addEventListener('click', () => {
+  setTimeout(() => resetTurnTimerIfNeeded(), 0);
+});
+
+// Extend animate loop to enforce timer
+const _origAnimate = animate;
+let _rafScheduled = false;
+// Re-define animate to include timer enforcement
+function animate() {
+  // Keep visibility current for rendering and input
+  renderer.draw();
+  updateUI();
+  // Turn change detection
+  resetTurnTimerIfNeeded();
+  // Check timeout for human player
+  if (game.currentPlayer === HUMAN_PLAYER && turnDeadlineMs > 0 && !timerExpiredHandled) {
+    const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    if (now >= turnDeadlineMs) {
+      timerExpiredHandled = true;
+      game.endTurn();
+      resetTurnTimerIfNeeded();
+      maybeRunAI();
+    }
+  }
+  requestAnimationFrame(animate);
+}
+
+// Initialize timer on load
+resetTurnTimer();
