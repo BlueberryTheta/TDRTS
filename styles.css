@@ -117,4 +117,6 @@ details.accordion[open] > summary::after { content: '▾'; }
   /* Use top HUD on mobile, hide side status/actions to save space */
   #hudTop { display: flex; position: sticky; top: 0; z-index: 7; margin: 0; border-radius: 0; border-left: 0; border-right: 0; }
   #right #status, #right #actions { display: none; }
+  #right hr { display: none; }
+  #shop.panel { margin-top: 6px; }
 }
