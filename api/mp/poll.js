@@ -1,6 +1,6 @@
 export const config = { runtime: 'edge' };
 export const runtime = 'edge';
-import { getEventsSince, getSnapshot, getCurrentPlayer } from './store.js';
+import { getEventsSince, getSnapshot, getCurrentPlayer, getPlayers } from './store.js';
 
 export default async function handler(req) {
   const { searchParams } = new URL(req.url);
@@ -8,7 +8,7 @@ export default async function handler(req) {
   const since = Number(searchParams.get('since') || 0);
   if (!roomId) return new Response('Bad Request', { status: 400 });
   const events = await getEventsSince(roomId, since);
-  const payload = { events, currentPlayer: await getCurrentPlayer(roomId) };
+  const payload = { events, currentPlayer: await getCurrentPlayer(roomId), players: await getPlayers(roomId) };
   if (since === 0) {
     const snap = await getSnapshot(roomId);
     if (snap) payload.snapshot = snap;

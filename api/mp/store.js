@@ -111,3 +111,13 @@ export async function getCurrentPlayer(roomId) {
     return room.currentPlayer;
   }
 }
+
+export async function getPlayers(roomId) {
+  if (hasNeon()) {
+    const room = await getOrCreateRoom(roomId);
+    return room.players;
+  } else {
+    const room = await getOrCreateRoom(roomId);
+    return room.players;
+  }
+}

@@ -170,7 +170,8 @@ function updateUI() {
   }
   // MP: enable inputs only on your turn
   if (MODE === 'mp' && mpClient) {
-    const myTurn = game.currentPlayer === mpClient.player;
+    const ready = (window.mpPlayers || 0) >= 2;
+    const myTurn = ready && game.currentPlayer === mpClient.player;
     const shopBtns = document.querySelectorAll('#shop .shop-item');
     shopBtns.forEach(b => b.disabled = !myTurn);
     if (ui.endTurn) ui.endTurn.disabled = !myTurn;
