@@ -256,26 +256,32 @@ function animate() {
 
 // Shop interaction
 ui.shop.addEventListener('click', (e) => {
-  const root = e.currentTarget;
   const el = (e.target instanceof HTMLElement) ? e.target.closest('[data-unit],[data-fort]') : null;
   if (!(el instanceof HTMLElement)) return;
   const type = el.getAttribute('data-unit');
   const fortTypeKey = el.getAttribute('data-fort');
+  const ready = (window.mpPlayers || 0) >= 2;
+  const myTurn = (MODE !== 'mp' || (ready && mpClient && game.currentPlayer === mpClient.player));
+  dlog('SHOP click', { type, fortTypeKey, turn: game.turn, cp: game.currentPlayer, me: mpClient?.player, ready, myTurn });
+  if (!myTurn) { dlog('SHOP blocked: not your turn or not ready'); return; }
   if (type) {
     const unitType = UNIT_TYPES[type];
-    if (!unitType) return;
+    if (!unitType) { dlog('SHOP unitType missing', type); return; }
     game.queueSpawn(unitType);
+    dlog('SHOP queued unit', { type });
     return;
   }
   if (fortTypeKey) {
     const fortType = FORT_TYPES[fortTypeKey];
-    if (!fortType) return;
+    if (!fortType) { dlog('SHOP fortType missing', fortTypeKey); return; }
     // If an Engineer is selected for the current player and not acted, queue build around it
     const sel = game.getUnitById(game.selectedId);
     if (sel && sel.player === game.currentPlayer && sel.type === 'Engineer' && !sel.acted) {
       game.queueFortBuild(fortType);
+      dlog('SHOP queued buildFort', { type: fortTypeKey, engineerId: sel.id });
     } else {
       game.queueFort(fortType);
+      dlog('SHOP queued fort', { type: fortTypeKey });
     }
   }
 });
