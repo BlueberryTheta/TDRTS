@@ -368,20 +368,16 @@ async function initMultiplayer() {
   const defaultWs = ((location.protocol === 'https:') ? 'wss://' : 'ws://') + location.host + '/api/ws';
   const wsUrl = (window.WS_URL || localStorage.getItem('WS_URL') || defaultWs);
   dlog('MP init', { wsUrl });
-  const { MultiplayerClient } = await import('./net.js');
+  const { MultiplayerClient, HttpMPClient } = await import('./net.js');
   mpClient = new MultiplayerClient(wsUrl);
   try {
     await mpClient.connect();
     dlog('MP connected');
   } catch (e) {
-    // Show mode modal with error and allow falling back
-    const modeModal = document.getElementById('modeModal');
-    const info = document.getElementById('mpInfo');
-    if (info) info.innerHTML = `<summary>Connection Error</summary><p class="hint">Failed to open WebSocket at <code>${wsUrl}</code>.<br/>Make sure you're running on Vercel or 'vercel dev' locally. You can fall back to Play vs Computer.</p>`;
-    if (modeModal) modeModal.style.display = 'flex';
     console.error('MP init failed', e);
-    MODE = 'ai';
-    return;
+    // Fallback to HTTP MP
+    mpClient = new HttpMPClient(location.origin);
+    await mpClient.connect();
   }
 
   // Room UI
@@ -404,15 +400,7 @@ async function initMultiplayer() {
   mpClient.on('event', (msg) => { if (msg.action) applyActionLocal(msg.action, msg.player, /*remote*/true); if (typeof msg.currentPlayer === 'number') game.currentPlayer = msg.currentPlayer; });
   mpClient.on('request_state', () => { mpClient.send({ type: 'snapshot', state: buildSnapshot() }); });
 
-  if (roomFromUrl) {
-    mpClient.joinRoom(roomFromUrl);
-  } else {
-    // Wait for button clicks from landing modal
-    const playOnlineBtn = document.getElementById('playOnline');
-    if (playOnlineBtn) playOnlineBtn.onclick = null; // already used
-    const createBtn = document.getElementById('playOnline');
-    // Reuse Play Online to create room immediately for simplicity
-  }
+  if (roomFromUrl) mpClient.joinRoom(roomFromUrl); else await mpClient.createRoom();
 
   // Set hooks for input to send actions
   const hooks = {
@@ -448,13 +436,7 @@ async function initMultiplayer() {
   attachInput(canvas, TILE_SIZE, game, hooks);
 
   // Provide simple create/join actions from modal buttons
-  const playVsAiBtn = document.getElementById('playVsAi');
-  const playOnlineBtn2 = document.getElementById('playOnline');
-  if (playVsAiBtn) playVsAiBtn.onclick = () => { /* ignore here */ };
-  if (playOnlineBtn2) playOnlineBtn2.onclick = async () => {
-    mpClient.createRoom();
-    document.getElementById('modeModal').style.display = 'none';
-  };
+  const modeEl = document.getElementById('modeModal'); if (modeEl) modeEl.style.display = 'none';
 
   // Simple join prompt
   if (!roomFromUrl) {

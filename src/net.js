@@ -55,3 +55,51 @@ export class MultiplayerClient {
   requestState() { if (this.debug) console.log('[MP] request_state'); this.send({ type: 'request_state' }); }
   action(msg) { if (this.debug) console.log('[MP] action', msg); this.send({ type: 'action', ...msg }); }
 }
+
+// HTTP long-poll fallback client
+export class HttpMPClient {
+  constructor(baseUrl) {
+    this.baseUrl = baseUrl; // same-origin
+    this.roomId = null; this.player = null; this.handlers = new Map(); this.seq = 0; this.polling = false; this.debug = (typeof window !== 'undefined' && (window.DEBUG === true)) || (new URLSearchParams(location.search).get('debug') === '1');
+  }
+  on(t,f){this.handlers.set(t,f);} emit(t,d){const h=this.handlers.get(t); if(h) h(d);} dlog(...a){ if(this.debug) console.log('[HTTP-MP]',...a); }
+  async connect(){ this.dlog('ready'); }
+  async createRoom(){
+    const res = await fetch('/api/mp/room', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'create' }) });
+    const data = await res.json(); if(data.error) throw new Error(data.error);
+    this.roomId = data.roomId; this.player = data.player; this.emit('room', { roomId: this.roomId, player: this.player });
+    if (data.snapshot) this.emit('snapshot', { type:'snapshot', state: data.snapshot });
+    this.startPolling();
+  }
+  async joinRoom(roomId){
+    const res = await fetch('/api/mp/room', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'join', roomId }) });
+    const data = await res.json(); if(data.error) throw new Error(data.error);
+    this.roomId = data.roomId; this.player = data.player; this.emit('room', { roomId: this.roomId, player: this.player });
+    if (data.snapshot) this.emit('snapshot', { type:'snapshot', state: data.snapshot });
+    this.startPolling();
+  }
+  async action(msg){
+    this.dlog('action', msg);
+    const res = await fetch('/api/mp/action', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ roomId: this.roomId, player: this.player, action: msg }) });
+    const data = await res.json(); if(data.error) { this.dlog('action error', data.error); return; }
+    // event will be picked up by poller; nothing else to do
+  }
+  async startPolling(){ if(this.polling) return; this.polling = true; this.dlog('polling start');
+    const loop = async () => {
+      try {
+        const url = `/api/mp/poll?room=${encodeURIComponent(this.roomId)}&since=${this.seq}`;
+        const res = await fetch(url, { headers:{ 'Cache-Control':'no-cache' } });
+        const data = await res.json();
+        if (data.snapshot) this.emit('snapshot', { type:'snapshot', state: data.snapshot });
+        if (Array.isArray(data.events)) {
+          for (const evt of data.events) {
+            this.seq = Math.max(this.seq, evt.seq || 0);
+            if (evt.type === 'event') this.emit('event', evt);
+          }
+        }
+      } catch(e) { this.dlog('poll error', e); }
+      if (this.polling) setTimeout(loop, 700);
+    };
+    loop();
+  }
+}
