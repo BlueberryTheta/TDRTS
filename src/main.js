@@ -134,7 +134,8 @@ function setMode(m) {
     // If it's AI's turn (player 2) for any reason, run AI
     maybeRunAI();
   } else if (MODE === 'mp') {
-    // Multiplayer stub: disable AI; UI stays as-is
+    // Initialize multiplayer client
+    initMultiplayer().catch(err => console.error('MP init failed', err));
   }
 }
 if (!MODE) {
@@ -155,6 +156,14 @@ function updateUI() {
   // Game over modal
   if (game.isGameOver && !gameOverShown) {
     showGameOver();
+  }
+  // MP: enable inputs only on your turn
+  if (MODE === 'mp' && mpClient) {
+    const myTurn = game.currentPlayer === mpClient.player;
+    const shopBtns = document.querySelectorAll('#shop .shop-item');
+    shopBtns.forEach(b => b.disabled = !myTurn);
+    if (ui.endTurn) ui.endTurn.disabled = !myTurn;
+    if (ui.endTurnTop) ui.endTurnTop.disabled = !myTurn;
   }
   // Selected unit panel
   const info = document.getElementById('unitInfo');
@@ -236,18 +245,22 @@ ui.shop.addEventListener('click', (e) => {
 
 // End turn button
 ui.endTurn.addEventListener('click', () => {
-  game.endTurn();
-  maybeRunAI();
+  if (MODE === 'mp' && mpClient) {
+    mpClient.action({ kind: 'endTurn' });
+  } else {
+    game.endTurn();
+    maybeRunAI();
+  }
 });
 if (ui.endTurnTop) {
   ui.endTurnTop.addEventListener('click', () => {
-    game.endTurn();
-    maybeRunAI();
+    if (MODE === 'mp' && mpClient) mpClient.action({ kind: 'endTurn' });
+    else { game.endTurn(); maybeRunAI(); }
   });
 }
 
 // Input handling (canvas clicks)
-attachInput(canvas, TILE_SIZE, game);
+attachInput(canvas, TILE_SIZE, game, undefined);
 
 // Start the game loop
 animate();
@@ -289,4 +302,90 @@ function showGameOver() {
     // Simple reset: full reload
     location.reload();
   };
+}
+
+// --- Multiplayer wiring ---
+function applySnapshot(snap) {
+  const s = snap.state;
+  // Replace mutable fields
+  game.w = s.w; game.h = s.h;
+  game.turn = s.turn; game.currentPlayer = s.currentPlayer;
+  game.income = s.income; game.money = s.money;
+  game.bases = s.bases; game.flags = s.flags;
+  game.units = s.units; game.forts = s.forts;
+  game.isGameOver = s.isGameOver; game.winner = s.winner;
+}
+
+async function initMultiplayer() {
+  const wsUrl = (window.WS_URL || localStorage.getItem('WS_URL') || 'ws://localhost:8080');
+  const { MultiplayerClient } = await import('./net.js');
+  mpClient = new MultiplayerClient(wsUrl);
+  await mpClient.connect();
+
+  // Room UI
+  const modal = document.getElementById('modeModal');
+  const info = document.getElementById('mpInfo');
+  const urlParams = new URLSearchParams(location.search);
+  const roomFromUrl = urlParams.get('room');
+  mpClient.on('room', ({ roomId, player }) => {
+    // Show shareable URL
+    if (info) {
+      info.innerHTML = `<summary>Online Multiplayer</summary><div class="hint">Room: <strong>${roomId}</strong><br/>Share this link: <code>?mode=mp&room=${roomId}</code></div>`;
+    }
+  });
+  mpClient.on('snapshot', (msg) => { applySnapshot(msg); });
+  mpClient.on('event', (msg) => { if (msg.snapshot) applySnapshot(msg.snapshot); });
+
+  if (roomFromUrl) {
+    mpClient.joinRoom(roomFromUrl);
+  } else {
+    // Wait for button clicks from landing modal
+    const playOnlineBtn = document.getElementById('playOnline');
+    if (playOnlineBtn) playOnlineBtn.onclick = null; // already used
+    const createBtn = document.getElementById('playOnline');
+    // Reuse Play Online to create room immediately for simplicity
+  }
+
+  // Set hooks for input to send actions
+  const hooks = {
+    spawn: ({ kind, unitType, fortType, x, y }) => {
+      if (game.currentPlayer !== mpClient.player) return;
+      const spawnType = kind; // 'unit' or 'fort'
+      mpClient.action({ kind: 'spawn', spawnType, unitType, fortType, x, y });
+    },
+    buildFort: (fortType, engineerId, x, y) => {
+      if (game.currentPlayer !== mpClient.player) return;
+      mpClient.action({ kind: 'buildFort', fortType, engineerId, x, y });
+    },
+    move: (unitId, x, y) => {
+      if (game.currentPlayer !== mpClient.player) return;
+      mpClient.action({ kind: 'move', unitId, x, y });
+    },
+    attack: (attackerId, x, y) => {
+      if (game.currentPlayer !== mpClient.player) return;
+      mpClient.action({ kind: 'attack', attackerId, x, y });
+    },
+  };
+  // Reattach input with hooks
+  attachInput(canvas, TILE_SIZE, game, hooks);
+
+  // Provide simple create/join actions from modal buttons
+  const playVsAiBtn = document.getElementById('playVsAi');
+  const playOnlineBtn2 = document.getElementById('playOnline');
+  if (playVsAiBtn) playVsAiBtn.onclick = () => { /* ignore here */ };
+  if (playOnlineBtn2) playOnlineBtn2.onclick = async () => {
+    mpClient.createRoom();
+    document.getElementById('modeModal').style.display = 'none';
+  };
+
+  // Simple join prompt
+  if (!roomFromUrl) {
+    const code = prompt('Enter room code to join, or leave blank to create');
+    if (code && code.trim()) { mpClient.joinRoom(code.trim()); document.getElementById('modeModal').style.display='none'; }
+    else { mpClient.createRoom(); document.getElementById('modeModal').style.display='none'; }
+  }
+}
+
+if (MODE === 'mp') {
+  initMultiplayer().catch(err => console.error('MP init failed', err));
 }

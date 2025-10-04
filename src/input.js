@@ -1,4 +1,4 @@
-export function attachInput(canvas, tileSize, game) {
+export function attachInput(canvas, tileSize, game, hooks) {
   const computeTile = (clientX, clientY) => {
     const rect = canvas.getBoundingClientRect();
     const cx = clientX - rect.left;
@@ -16,15 +16,31 @@ export function attachInput(canvas, tileSize, game) {
 
     // If an engineer build is queued, try to build here first
     if (game.buildQueue) {
-      const built = game.tryBuildAt(x, y);
-      if (built) return;
+      if (hooks && typeof hooks.buildFort === 'function') {
+        const { fortType } = game.buildQueue;
+        const eng = game.getUnitById(game.buildQueue.engineerId);
+        hooks.buildFort(fortType.name, eng ? eng.id : null, x, y);
+        game.buildQueue = null; // await server
+        return;
+      } else {
+        const built = game.tryBuildAt(x, y);
+        if (built) return;
+      }
     }
 
     // If a spawn is queued, try to spawn here
     if (game.spawnQueue) {
-      const spawned = game.trySpawnAt(x, y);
-      if (spawned) return; // done
-      // If invalid, fall through to normal handling (to allow selection)
+      if (hooks && typeof hooks.spawn === 'function') {
+        const kind = game.spawnQueue.kind;
+        if (kind === 'unit') hooks.spawn({ kind, unitType: game.spawnQueue.unitType.name, x, y });
+        else if (kind === 'fort') hooks.spawn({ kind, fortType: game.spawnQueue.fortType.name, x, y });
+        game.spawnQueue = null; // await server
+        return;
+      } else {
+        const spawned = game.trySpawnAt(x, y);
+        if (spawned) return; // done
+        // If invalid, fall through to normal handling (to allow selection)
+      }
     }
 
     const sel = game.getUnitById(game.selectedId);
@@ -52,7 +68,11 @@ export function attachInput(canvas, tileSize, game) {
       if (!visible && !spottedForArtillery) return;
       const atkTiles = game.getAttackableTiles(sel);
       if (atkTiles.has(`${x},${y}`)) {
-        game.attack(sel, enemy || fort);
+        if (hooks && typeof hooks.attack === 'function') {
+          hooks.attack(sel.id, x, y);
+        } else {
+          game.attack(sel, enemy || fort);
+        }
         return;
       }
     }
@@ -61,9 +81,13 @@ export function attachInput(canvas, tileSize, game) {
     if (!sel.moved) {
       const moveTiles = game.getMoveRange(sel);
       if (moveTiles.has(`${x},${y}`)) {
-        game.moveUnitTo(sel, x, y);
-        // If carrying flag and on base, check capture now
-        game.checkFlagCapture(sel);
+        if (hooks && typeof hooks.move === 'function') {
+          hooks.move(sel.id, x, y);
+        } else {
+          game.moveUnitTo(sel, x, y);
+          // If carrying flag and on base, check capture now
+          game.checkFlagCapture(sel);
+        }
         return;
       }
     }
