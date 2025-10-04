@@ -61,6 +61,7 @@ function tryAttack(game, unit) {
 
 export async function runAiTurn(game) {
   if (game.currentPlayer !== 1) return; // Only act for Player 2
+  if (game.isGameOver) return;
 
   // 1) Buy and spawn if possible
   const choice = pickPurchase(game);
@@ -76,6 +77,7 @@ export async function runAiTurn(game) {
   const enemyBase = game.bases[0];
   const aiUnits = game.units.filter((u) => u.player === 1);
   for (const u of aiUnits) {
+    if (game.isGameOver) break;
     if (game.currentPlayer !== 1) break;
     // Attack first if in range
     if (!u.acted && tryAttack(game, u)) {

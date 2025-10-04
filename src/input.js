@@ -9,6 +9,7 @@ export function attachInput(canvas, tileSize, game) {
   };
 
   const onPoint = (clientX, clientY) => {
+    if (game.isGameOver) return; // block interactions when game ended
     // Recompute visibility for accurate fog interactions
     if (typeof game.recomputeVisibility === 'function') game.recomputeVisibility();
     const { x, y } = computeTile(clientX, clientY);

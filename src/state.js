@@ -37,6 +37,9 @@ export class GameState {
     this.medicHeal = 2; // HP per end of turn
     // Fog of war visibility cache per player
     this.visibility = [new Set(), new Set()];
+    // Game over state
+    this.isGameOver = false;
+    this.winner = null; // 0 or 1
   }
 
   nextId() { return this._unitId++; }
@@ -228,6 +231,7 @@ export class GameState {
   }
 
   endTurn() {
+    if (this.isGameOver) return; // no-op when game ended
     // Reset units' action state for the next player
     this.units.forEach(u => {
       if (u.player === this.currentPlayer) {
@@ -338,17 +342,35 @@ export class GameState {
     unit.x = x; unit.y = y; unit.moved = true;
     // If moved onto a flag
     this.pickupFlagIfAny(unit);
+    // If carrying own flag and on own base, return it to base
+    this.checkOwnFlagReturn(unit);
     return true;
   }
 
   pickupFlagIfAny(unit) {
-    // Pick up any flag present on this tile that is not already carried
+    // Pick up enemy flag if present, or own flag if it is away from base
     for (let i = 0; i < this.flags.length; i++) {
       const flag = this.flags[i];
-      if (flag.carriedBy == null && flag.x === unit.x && flag.y === unit.y) {
-        flag.carriedBy = unit.id;
-        flag.atBase = false;
+      if (flag.carriedBy != null) continue;
+      if (flag.x !== unit.x || flag.y !== unit.y) continue;
+      const isOwnFlag = (i === unit.player);
+      if (isOwnFlag) {
+        // Do not pick up your own flag if it's on your base
+        if (flag.atBase) continue;
       }
+      flag.carriedBy = unit.id;
+      flag.atBase = false;
+    }
+  }
+
+  checkOwnFlagReturn(unit) {
+    const myFlag = this.flags[unit.player];
+    const myBase = this.bases[unit.player];
+    if (myFlag.carriedBy === unit.id && unit.x === myBase.x && unit.y === myBase.y) {
+      // Return own flag to base
+      myFlag.atBase = true;
+      myFlag.carriedBy = null;
+      myFlag.x = myBase.x; myFlag.y = myBase.y;
     }
   }
 
@@ -364,14 +386,14 @@ export class GameState {
     const enemyFlag = this.flags[(unit.player + 1) % 2];
     const myBase = this.bases[unit.player];
     if (enemyFlag.carriedBy === unit.id && unit.x === myBase.x && unit.y === myBase.y) {
-      // Captured! Reset enemy flag to its base and give a reward / announce win.
+      // Captured! Reset enemy flag to its base and trigger win state.
       const enemyBase = this.bases[(unit.player + 1) % 2];
       enemyFlag.atBase = true;
       enemyFlag.carriedBy = null;
       enemyFlag.x = enemyBase.x; enemyFlag.y = enemyBase.y;
-      // Simple reward/notification for now
-      this.money[unit.player] += 100;
-      // In a full game, trigger win state here
+      // Winner
+      this.isGameOver = true;
+      this.winner = unit.player;
     }
   }
 
@@ -460,6 +482,8 @@ export class GameState {
 
     // If attacker carries a flag and moved/attacked onto base, check capture
     this.checkFlagCapture(attacker);
+    // Also check if returning own flag to base
+    this.checkOwnFlagReturn(attacker);
     return true;
   }
 

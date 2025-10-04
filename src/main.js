@@ -127,6 +127,10 @@ function updateUI() {
   if (ui.currentPlayerTop) ui.currentPlayerTop.textContent = String(game.currentPlayer + 1);
   if (ui.moneyTop) ui.moneyTop.textContent = String(game.money[game.currentPlayer]);
   if (ui.turnTop) ui.turnTop.textContent = String(game.turn);
+  // Game over modal
+  if (game.isGameOver && !gameOverShown) {
+    showGameOver();
+  }
   // Selected unit panel
   const info = document.getElementById('unitInfo');
   const none = document.getElementById('unitNone');
@@ -244,3 +248,19 @@ async function maybeRunAI() {
 
 // If for any reason AI starts, ensure it runs
 maybeRunAI();
+
+// --- Game Over Modal ---
+let gameOverShown = false;
+function showGameOver() {
+  gameOverShown = true;
+  setUIEnabled(false);
+  const modal = document.getElementById('gameOverModal');
+  const text = document.getElementById('gameOverText');
+  if (text) text.textContent = `Player ${String((game.winner ?? 0) + 1)} captured the flag!`;
+  if (modal) modal.style.display = 'flex';
+  const btn = document.getElementById('newGameBtn');
+  if (btn) btn.onclick = () => {
+    // Simple reset: full reload
+    location.reload();
+  };
+}

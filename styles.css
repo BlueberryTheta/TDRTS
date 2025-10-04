@@ -120,3 +120,7 @@ details.accordion[open] > summary::after { content: '▾'; }
   #right hr { display: none; }
   #shop.panel { margin-top: 6px; }
 }
+
+/* Modal overlay */
+.modal { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; z-index: 999; }
+.modal-content { max-width: 360px; width: 90%; text-align: center; }
