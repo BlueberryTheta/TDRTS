@@ -3,9 +3,6 @@ export const runtime = 'edge';
 
 import { hasNeon, isSqlAvailable, initTables, getRoom, upsertRoom, createRoomRow, nextSeq, appendEventRow, listEventsSince } from './db.js';
 
-// Simple in-memory store for fallback if Neon not configured
-const memRooms = new Map();
-
 function rnd(n = 6) {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let out = '';
@@ -18,133 +15,63 @@ async function kvSet(key, val) { if (!kv) return; try { await kv.set(key, val); 
 
 export async function getOrCreateRoom(id) {
   if (!id) id = rnd();
-  if (hasNeon()) {
-    try {
-      await initTables();
-      let room = await getRoom(id);
-      if (!room) room = await createRoomRow(id);
-      if (room) return { id: room.id, players: Number(room.players), currentPlayer: Number(room.current_player), lastSnapshot: room.last_snapshot, seq: Number(room.seq) };
-    } catch {}
-  }
-  {
-    if (!memRooms.has(id)) memRooms.set(id, { id, currentPlayer: 0, lastSnapshot: null, events: [], seq: 0, players: 0 });
-    return memRooms.get(id);
-  }
+  if (!hasNeon() || !(await isSqlAvailable())) throw new Error('Neon database not configured');
+  await initTables();
+  let room = await getRoom(id);
+  if (!room) room = await createRoomRow(id);
+  if (!room) throw new Error('Failed to create room');
+  return { id: room.id, players: Number(room.players), currentPlayer: Number(room.current_player), lastSnapshot: room.last_snapshot, seq: Number(room.seq) };
 }
 
 export async function createRoom() { return await getOrCreateRoom(null); }
 
 export async function joinRoom(roomId) {
-  if (hasNeon()) {
-    try {
-      let room = await getOrCreateRoom(roomId);
-      if (room.players >= 2) return { error: 'Room full' };
-      const player = room.players;
-      room.players += 1;
-      await upsertRoom({ id: room.id, players: room.players, current_player: room.currentPlayer, last_snapshot: room.lastSnapshot, seq: room.seq });
-      return { room, player };
-    } catch {}
-  }
-  {
-    const room = await getOrCreateRoom(roomId);
-    if (room.players >= 2) return { error: 'Room full' };
-    const player = room.players; room.players += 1;
-    return { room, player };
-  }
+  let room = await getOrCreateRoom(roomId);
+  if (room.players >= 2) return { error: 'Room full' };
+  const player = room.players;
+  room.players += 1;
+  await upsertRoom({ id: room.id, players: room.players, current_player: room.currentPlayer, last_snapshot: room.lastSnapshot, seq: room.seq });
+  return { room, player };
 }
 
 export async function appendEvent(roomId, evt) {
-  if (hasNeon()) {
-    try {
-      const room = await getOrCreateRoom(roomId);
-      const seq = await nextSeq(room.id);
-      const withSeq = { ...evt, seq };
-      await appendEventRow(room.id, seq, withSeq);
-      return withSeq;
-    } catch {}
-  }
-  {
-    const room = await getOrCreateRoom(roomId);
-    room.seq += 1; const withSeq = { ...evt, seq: room.seq };
-    room.events.push(withSeq); if (room.events.length > 500) room.events.splice(0, room.events.length - 500);
-    return withSeq;
-  }
+  const room = await getOrCreateRoom(roomId);
+  const seq = await nextSeq(room.id);
+  const withSeq = { ...evt, seq };
+  await appendEventRow(room.id, seq, withSeq);
+  return withSeq;
 }
 
 export async function getEventsSince(roomId, since) {
-  if (hasNeon()) {
-    try { return await listEventsSince(roomId, since); } catch {}
-  }
-  {
-    const room = await getOrCreateRoom(roomId);
-    return room.events.filter(e => e.seq > since);
-  }
+  return await listEventsSince(roomId, since);
 }
 
 export async function setSnapshot(roomId, state) {
-  if (hasNeon()) {
-    try {
-      const room = await getOrCreateRoom(roomId);
-      await upsertRoom({ id: room.id, players: room.players, current_player: room.currentPlayer, last_snapshot: state, seq: room.seq });
-      return;
-    } catch {}
-  }
-  {
-    const room = await getOrCreateRoom(roomId);
-    room.lastSnapshot = state;
-  }
+  const room = await getOrCreateRoom(roomId);
+  await upsertRoom({ id: room.id, players: room.players, current_player: room.currentPlayer, last_snapshot: state, seq: room.seq });
 }
 
 export async function getSnapshot(roomId) {
-  if (hasNeon()) {
-    try { const room = await getOrCreateRoom(roomId); return room.lastSnapshot; } catch {}
-  }
-  {
-    const room = await getOrCreateRoom(roomId);
-    return room.lastSnapshot;
-  }
+  const room = await getOrCreateRoom(roomId);
+  return room.lastSnapshot;
 }
 
 export async function setCurrentPlayer(roomId, cp) {
-  if (hasNeon()) {
-    try {
-      const room = await getOrCreateRoom(roomId);
-      await upsertRoom({ id: room.id, players: room.players, current_player: cp, last_snapshot: room.lastSnapshot, seq: room.seq });
-      return;
-    } catch {}
-  }
-  {
-    const room = await getOrCreateRoom(roomId);
-    room.currentPlayer = cp;
-  }
+  const room = await getOrCreateRoom(roomId);
+  await upsertRoom({ id: room.id, players: room.players, current_player: cp, last_snapshot: room.lastSnapshot, seq: room.seq });
 }
 
 export async function getCurrentPlayer(roomId) {
-  if (hasNeon()) {
-    try { const room = await getOrCreateRoom(roomId); return room.currentPlayer; } catch {}
-  }
-  {
-    const room = await getOrCreateRoom(roomId);
-    return room.currentPlayer;
-  }
+  const room = await getOrCreateRoom(roomId);
+  return room.currentPlayer;
 }
 
 export async function setPlayers(roomId, n) {
-  if (hasNeon()) {
-    try {
-      const room = await getOrCreateRoom(roomId);
-      await upsertRoom({ id: room.id, players: n, current_player: room.currentPlayer, last_snapshot: room.lastSnapshot, seq: room.seq });
-      return;
-    } catch {}
-  }
   const room = await getOrCreateRoom(roomId);
-  room.players = n;
+  await upsertRoom({ id: room.id, players: n, current_player: room.currentPlayer, last_snapshot: room.lastSnapshot, seq: room.seq });
 }
 
 export async function getPlayers(roomId) {
-  if (hasNeon()) {
-    try { const room = await getOrCreateRoom(roomId); return room.players; } catch {}
-  }
   const room = await getOrCreateRoom(roomId);
   return room.players;
 }

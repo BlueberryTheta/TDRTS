@@ -9,6 +9,10 @@ export default async function handler(req) {
     if (req.method !== 'POST') return new Response('Method Not Allowed', { status: 405 });
     const body = await req.json().catch(() => ({}));
     const { roomId, player, action } = body;
+    // Require Neon
+    // Import here to avoid circular
+    const { hasNeon } = await import('./db.js');
+    if (!hasNeon()) return json({ error: 'Service Unavailable', message: 'Neon database not configured.' }, 503);
     if (!roomId || typeof player !== 'number' || !action) return json({ error: 'Bad Request' }, 400);
 
     // Enforce turn

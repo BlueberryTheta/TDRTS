@@ -11,6 +11,7 @@ export default async function handler(req) {
   try {
     if (req.method !== 'POST') return new Response('Method Not Allowed', { status: 405 });
     const body = await req.json().catch(() => ({}));
+    if (!hasNeon()) return json({ error: 'Service Unavailable', message: 'Neon database not configured. Set DATABASE_URL / POSTGRES_URL (HTTP) or PG* vars.' }, 503);
     if (body.action === 'create') {
       const room = await createRoom();
       // Ensure creator is Player 0 and players=1
