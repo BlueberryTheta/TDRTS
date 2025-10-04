@@ -11,7 +11,11 @@ export default async function handler(req) {
     const since = Number(searchParams.get('since') || 0);
     if (!roomId) return new Response('Bad Request', { status: 400 });
     const { hasNeon } = await import('./db.js');
-    if (!hasNeon()) return json({ error: 'Service Unavailable', message: 'Neon database not configured.' }, 503);
+    if (!hasNeon()) {
+      try { console.error('[MP/POLL] Neon not configured'); } catch {}
+      return json({ error: 'Service Unavailable', message: 'Neon database not configured.' }, 503);
+    }
+    try { console.log('[MP/POLL] room=', roomId, 'since=', since); } catch {}
     const events = await getEventsSince(roomId, since);
     const payload = { events, currentPlayer: await getCurrentPlayer(roomId), players: await getPlayers(roomId) };
     if (since === 0) {
@@ -20,6 +24,7 @@ export default async function handler(req) {
     }
     return json(payload);
   } catch (e) {
+    try { console.error('[MP/POLL] error', e?.message || e); } catch {}
     return json({ error: 'Internal', message: String(e?.message || e) }, 500);
   }
 }

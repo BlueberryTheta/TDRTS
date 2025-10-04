@@ -15,6 +15,7 @@ function buildConnStringFromParts() {
   let url = `postgres://${encodeURIComponent(user)}:${encodeURIComponent(pass)}@${host}/${db}`;
   if (!/\?/.test(url)) url += '?sslmode=require';
   else if (!/sslmode=/.test(url)) url += '&sslmode=require';
+  try { console.log('[MP/DB] buildConnStringFromParts host=', host, 'db=', db, 'user=', user ? '[set]' : ''); } catch {}
   return url;
 }
 
@@ -32,8 +33,11 @@ function pickDatabaseUrl() {
     if (/^postgres(ql)?:\/\//i.test(c)) {
       // Ensure sslmode=require
       if (!/sslmode=/.test(c)) {
-        return c + (c.includes('?') ? '&' : '?') + 'sslmode=require';
+        const url = c + (c.includes('?') ? '&' : '?') + 'sslmode=require';
+        try { console.log('[MP/DB] picked URL from env (added sslmode)'); } catch {}
+        return url;
       }
+      try { console.log('[MP/DB] picked URL from env'); } catch {}
       return c;
     }
   }
@@ -47,8 +51,10 @@ async function getSql() {
       const { neon } = await import('@neondatabase/serverless');
       const url = pickDatabaseUrl();
       if (!url) return null;
+      try { console.log('[MP/DB] initializing Neon client'); } catch {}
       return neon(url);
     } catch {
+      try { console.error('[MP/DB] failed to import or initialize Neon client'); } catch {}
       return null;
     }
   })();
@@ -74,6 +80,7 @@ export async function initTables() {
     PRIMARY KEY (room_id, seq)
   )`;
   inited = true;
+  try { console.log('[MP/DB] ensured tables'); } catch {}
 }
 
 export async function getRoom(id) {

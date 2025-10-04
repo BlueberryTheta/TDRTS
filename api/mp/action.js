@@ -12,7 +12,11 @@ export default async function handler(req) {
     // Require Neon
     // Import here to avoid circular
     const { hasNeon } = await import('./db.js');
-    if (!hasNeon()) return json({ error: 'Service Unavailable', message: 'Neon database not configured.' }, 503);
+    if (!hasNeon()) {
+      try { console.error('[MP/ACTION] Neon not configured'); } catch {}
+      return json({ error: 'Service Unavailable', message: 'Neon database not configured.' }, 503);
+    }
+    try { console.log('[MP/ACTION]', action?.kind, 'room=', roomId, 'by=', player); } catch {}
     if (!roomId || typeof player !== 'number' || !action) return json({ error: 'Bad Request' }, 400);
 
     // Enforce turn
@@ -24,6 +28,7 @@ export default async function handler(req) {
     const evt = await appendEvent(roomId, { type: 'event', player, action, currentPlayer: await getCurrentPlayer(roomId) });
     return json({ ok: true, event: evt });
   } catch (e) {
+    try { console.error('[MP/ACTION] error', e?.message || e); } catch {}
     return json({ error: 'Internal', message: String(e?.message || e) }, 500);
   }
 }

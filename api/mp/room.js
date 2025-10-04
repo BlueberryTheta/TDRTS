@@ -11,7 +11,11 @@ export default async function handler(req) {
   try {
     if (req.method !== 'POST') return new Response('Method Not Allowed', { status: 405 });
     const body = await req.json().catch(() => ({}));
-    if (!hasNeon()) return json({ error: 'Service Unavailable', message: 'Neon database not configured. Set DATABASE_URL / POSTGRES_URL (HTTP) or PG* vars.' }, 503);
+    try { console.log('[MP/ROOM] request', body?.action, body?.roomId || ''); } catch {}
+    if (!hasNeon()) {
+      try { console.error('[MP/ROOM] Neon not configured'); } catch {}
+      return json({ error: 'Service Unavailable', message: 'Neon database not configured. Set DATABASE_URL / POSTGRES_URL (HTTP) or PG* vars.' }, 503);
+    }
     if (body.action === 'create') {
       const room = await createRoom();
       // Ensure creator is Player 0 and players=1
@@ -29,6 +33,7 @@ export default async function handler(req) {
     }
     return json({ error: 'Bad Request' }, 400);
   } catch (e) {
+    try { console.error('[MP/ROOM] error', e?.message || e); } catch {}
     return json({ error: 'Internal', message: String(e?.message || e) }, 500);
   }
 }
