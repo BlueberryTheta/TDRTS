@@ -172,7 +172,10 @@ export class GameState {
   trySpawnAt(x, y) {
     if (!this.spawnQueue) { if (DBG()) slog('trySpawnAt no spawnQueue', { x, y }); return false; }
     if (DBG()) slog('trySpawnAt begin', { x, y, queue: this.spawnQueue });
-    const id = this.nextId();
+    let id = this.nextId();
+    // Ensure id is unique even if _unitId fell behind due to snapshot init
+    const idInUse = (testId) => this.units.some(u => u.id === testId) || this.forts.some(f => f.id === testId);
+    while (idInUse(id)) id = this.nextId();
     let created = null;
     if (this.spawnQueue.kind === 'unit') {
       // For units: allow spawning onto friendly bunker near base (including diagonals)

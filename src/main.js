@@ -387,6 +387,17 @@ function applySnapshot(snap) {
   game.flags = s.flags;
   game.units = s.units;
   game.forts = s.forts;
+  // Ensure local id counter advances beyond all received ids to avoid id collisions
+  try {
+    let maxId = 0;
+    if (Array.isArray(game.units)) {
+      for (const u of game.units) if (u && typeof u.id === 'number') maxId = Math.max(maxId, u.id);
+    }
+    if (Array.isArray(game.forts)) {
+      for (const f of game.forts) if (f && typeof f.id === 'number') maxId = Math.max(maxId, f.id);
+    }
+    game._unitId = (maxId || 0) + 1;
+  } catch {}
   game.isGameOver = s.isGameOver;
   game.winner = s.winner;
   if (hasSnapRev) game.rev = snapRev;
