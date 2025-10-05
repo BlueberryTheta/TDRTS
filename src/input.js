@@ -47,9 +47,16 @@ export function attachInput(canvas, tileSize, game, hooks) {
     if (game.spawnQueue) {
       const hk = getHooks();
       if (hk && typeof hk.spawn === 'function') {
-        const kind = game.spawnQueue.kind;
-        if (kind === 'unit') hk.spawn({ kind, unitType: game.spawnQueue.unitType.name, x, y });
-        else if (kind === 'fort') hk.spawn({ kind, fortType: game.spawnQueue.fortType.name, x, y });
+        const q = game.spawnQueue; // capture before hook runs
+        const kind = q.kind;
+        if (kind === 'unit') hk.spawn({ kind, unitType: q.unitType.name, x, y });
+        else if (kind === 'fort') hk.spawn({ kind, fortType: q.fortType.name, x, y });
+        if (typeof window !== 'undefined' && window.__LAST_HOOK_SENT !== true && window.__MP_CLIENT) {
+          try {
+            if (kind === 'unit') { console.log('HOOK spawn (post-fallback)', { kind, unitType: q.unitType.name, x, y }); window.__MP_CLIENT.action({ kind: 'spawn', spawnType: 'unit', unitType: q.unitType.name, x, y }); }
+            else { console.log('HOOK spawn (post-fallback)', { kind, fortType: q.fortType.name, x, y }); window.__MP_CLIENT.action({ kind: 'spawn', spawnType: 'fort', fortType: q.fortType.name, x, y }); }
+          } catch {}
+        }
         game.spawnQueue = null; // await server
         return;
       } else {
@@ -101,7 +108,11 @@ export function attachInput(canvas, tileSize, game, hooks) {
       if (atkTiles.has(`${x},${y}`)) {
         const hk = getHooks();
         if (hk && typeof hk.attack === 'function') {
-          hk.attack(sel.id, x, y);
+          const id = sel.id;
+          hk.attack(id, x, y);
+          if (typeof window !== 'undefined' && window.__LAST_HOOK_SENT !== true && window.__MP_CLIENT) {
+            try { console.log('HOOK attack (post-fallback)', { attackerId: id, x, y }); window.__MP_CLIENT.action({ kind: 'attack', attackerId: id, x, y }); } catch {}
+          }
         } else {
           game.attack(sel, enemy || fort);
           if (typeof window !== 'undefined' && window.__MP_CLIENT) {
@@ -118,7 +129,11 @@ export function attachInput(canvas, tileSize, game, hooks) {
       if (moveTiles.has(`${x},${y}`)) {
         const hk = getHooks();
         if (hk && typeof hk.move === 'function') {
-          hk.move(sel.id, x, y);
+          const id = sel.id;
+          hk.move(id, x, y);
+          if (typeof window !== 'undefined' && window.__LAST_HOOK_SENT !== true && window.__MP_CLIENT) {
+            try { console.log('HOOK move (post-fallback)', { unitId: id, x, y }); window.__MP_CLIENT.action({ kind: 'move', unitId: id, x, y }); } catch {}
+          }
         } else {
           const ok = game.moveUnitTo(sel, x, y);
           // If carrying flag and on base, check capture now

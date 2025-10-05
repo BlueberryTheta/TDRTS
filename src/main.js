@@ -517,10 +517,11 @@ async function initMultiplayer() {
   // Set hooks for input to send actions
   const hooks = {
     spawn: ({ kind, unitType, fortType, x, y }) => {
-      if (game.currentPlayer !== mpClient.player) return;
+      try { console.log('HOOK spawn intent', { kind, unitType, fortType, x, y, turn: game.turn, cp: game.currentPlayer, me: mpClient?.player }); } catch {}
+      if (game.currentPlayer !== mpClient.player) { try { console.log('HOOK spawn blocked (not your turn)'); } catch {} return; }
       try { console.log('HOOK spawn', { kind, unitType, fortType, x, y }); } catch {}
       const spawnType = kind; // 'unit' or 'fort'
-      mpClient.action({ kind: 'spawn', spawnType, unitType, fortType, x, y });
+      try { mpClient.action({ kind: 'spawn', spawnType, unitType, fortType, x, y }); if (typeof window !== 'undefined') window.__LAST_HOOK_SENT = true; } catch {}
       // Apply locally
       if (spawnType === 'unit') { const ut = UNIT_TYPES[unitType]; game.queueSpawn(ut); game.trySpawnAt(x, y); }
       else { const ft = FORT_TYPES[fortType]; game.queueFort(ft); game.trySpawnAt(x, y); }
@@ -529,25 +530,28 @@ async function initMultiplayer() {
       try { if (typeof mpClient.snapshot === 'function') mpClient.snapshot(buildSnapshot()); } catch {}
     },
     buildFort: (fortType, engineerId, x, y) => {
-      if (game.currentPlayer !== mpClient.player) return;
+      try { console.log('HOOK buildFort intent', { fortType, engineerId, x, y, turn: game.turn, cp: game.currentPlayer, me: mpClient?.player }); } catch {}
+      if (game.currentPlayer !== mpClient.player) { try { console.log('HOOK buildFort blocked (not your turn)'); } catch {} return; }
       try { console.log('HOOK buildFort', { fortType, engineerId, x, y }); } catch {}
-      mpClient.action({ kind: 'buildFort', fortType, engineerId, x, y });
+      try { mpClient.action({ kind: 'buildFort', fortType, engineerId, x, y }); if (typeof window !== 'undefined') window.__LAST_HOOK_SENT = true; } catch {}
       game.selectedId = engineerId; const ft = FORT_TYPES[fortType]; game.queueFortBuild(ft); game.tryBuildAt(x, y);
       try { window.__lastLocalApplyTs = Date.now(); } catch {}
       try { if (typeof mpClient.snapshot === 'function') mpClient.snapshot(buildSnapshot()); } catch {}
     },
     move: (unitId, x, y) => {
-      if (game.currentPlayer !== mpClient.player) return;
+      try { console.log('HOOK move intent', { unitId, x, y, turn: game.turn, cp: game.currentPlayer, me: mpClient?.player }); } catch {}
+      if (game.currentPlayer !== mpClient.player) { try { console.log('HOOK move blocked (not your turn)'); } catch {} return; }
       try { console.log('HOOK move', { unitId, x, y }); } catch {}
-      mpClient.action({ kind: 'move', unitId, x, y });
+      try { mpClient.action({ kind: 'move', unitId, x, y }); if (typeof window !== 'undefined') window.__LAST_HOOK_SENT = true; } catch {}
       const u = game.getUnitById(unitId); if (u) { game.moveUnitTo(u, x, y); game.checkFlagCapture(u); }
       try { window.__lastLocalApplyTs = Date.now(); } catch {}
       try { if (typeof mpClient.snapshot === 'function') mpClient.snapshot(buildSnapshot()); } catch {}
     },
     attack: (attackerId, x, y) => {
-      if (game.currentPlayer !== mpClient.player) return;
+      try { console.log('HOOK attack intent', { attackerId, x, y, turn: game.turn, cp: game.currentPlayer, me: mpClient?.player }); } catch {}
+      if (game.currentPlayer !== mpClient.player) { try { console.log('HOOK attack blocked (not your turn)'); } catch {} return; }
       try { console.log('HOOK attack', { attackerId, x, y }); } catch {}
-      mpClient.action({ kind: 'attack', attackerId, x, y });
+      try { mpClient.action({ kind: 'attack', attackerId, x, y }); if (typeof window !== 'undefined') window.__LAST_HOOK_SENT = true; } catch {}
       const a = game.getUnitById(attackerId); const enemy = game.getEnemyAt(x, y) || game.getFortAt(x, y); if (a && enemy) game.attack(a, enemy);
       try { window.__lastLocalApplyTs = Date.now(); } catch {}
       try { if (typeof mpClient.snapshot === 'function') mpClient.snapshot(buildSnapshot()); } catch {}
