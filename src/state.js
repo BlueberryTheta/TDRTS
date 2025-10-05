@@ -173,6 +173,7 @@ export class GameState {
     if (!this.spawnQueue) { if (DBG()) slog('trySpawnAt no spawnQueue', { x, y }); return false; }
     if (DBG()) slog('trySpawnAt begin', { x, y, queue: this.spawnQueue });
     const id = this.nextId();
+    let created = null;
     if (this.spawnQueue.kind === 'unit') {
       // For units: allow spawning onto friendly bunker near base (including diagonals)
       const { x: bx, y: by } = this.bases[this.currentPlayer];
@@ -187,6 +188,7 @@ export class GameState {
       this.units.push(unit);
       this.money[this.currentPlayer] -= unitType.cost;
       this.rev++;
+      created = unit;
       if (DBG()) slog('spawned unit', { id, type: unitType.name, x, y, cp: this.currentPlayer, money: this.money[this.currentPlayer] });
     } else if (this.spawnQueue.kind === 'fort') {
       if (!this.canSpawnAt(x, y)) { if (DBG()) slog('trySpawnAt fort denied: canSpawnAt false'); return false; }
@@ -195,10 +197,11 @@ export class GameState {
       this.forts.push(fort);
       this.money[this.currentPlayer] -= fortType.cost;
       this.rev++;
+      created = fort;
       if (DBG()) slog('spawned fort', { id, type: fortType.name, x, y, cp: this.currentPlayer, money: this.money[this.currentPlayer] });
     }
     this.spawnQueue = null;
-    return true;
+    return created || true;
   }
 
   canEngineerBuildAt(x, y) {
