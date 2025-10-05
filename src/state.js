@@ -358,6 +358,7 @@ export class GameState {
     const ox = unit.x, oy = unit.y;
     if (!this.isPassableForUnit(unit, x, y)) { if (DBG()) slog('move denied', { id: unit.id, from: {x:ox,y:oy}, to: {x,y} }); return false; }
     unit.x = x; unit.y = y; unit.moved = true;
+    this.rev++;
     if (DBG()) slog('moved', { id: unit.id, type: unit.type, p: unit.player, from: {x:ox,y:oy}, to: {x,y} });
     // If moved onto a flag
     this.pickupFlagIfAny(unit);
@@ -379,6 +380,8 @@ export class GameState {
       }
       flag.carriedBy = unit.id;
       flag.atBase = false;
+      this.rev++;
+      break;
     }
   }
 
@@ -390,6 +393,7 @@ export class GameState {
       myFlag.atBase = true;
       myFlag.carriedBy = null;
       myFlag.x = myBase.x; myFlag.y = myBase.y;
+      this.rev++;
     }
   }
 
@@ -398,6 +402,7 @@ export class GameState {
     if (enemyFlag.carriedBy === unit.id) {
       enemyFlag.carriedBy = null;
       enemyFlag.x = x; enemyFlag.y = y; enemyFlag.atBase = false;
+      this.rev++;
     }
   }
 
@@ -413,6 +418,7 @@ export class GameState {
       // Winner
       this.isGameOver = true;
       this.winner = unit.player;
+      this.rev++;
     }
   }
 
