@@ -333,11 +333,17 @@ function showGameOver() {
 
 // --- Multiplayer wiring ---
 function applySnapshot(snap) {
-  const s = snap.state;
-  // Only apply if newer or if local rev is missing
-  const localRev = typeof game.rev === 'number' ? game.rev : -1;
-  const snapRev = typeof s.rev === 'number' ? s.rev : localRev + 1;
-  if (snapRev <= localRev) return;
+  const s = snap && snap.state;
+  if (!s) return;
+  // Apply only if strictly newer. If snapshot has no rev, ignore unless our local rev is missing.
+  const localRev = (typeof game.rev === 'number') ? game.rev : -1;
+  const hasSnapRev = (typeof s.rev === 'number');
+  const snapRev = hasSnapRev ? s.rev : -1;
+  if (!hasSnapRev && localRev >= 0) {
+    // Ignore rev-less snapshots once local state has initialized
+    return;
+  }
+  if (hasSnapRev && snapRev <= localRev) return;
   game.w = s.w; game.h = s.h;
   game.turn = s.turn;
   game.currentPlayer = s.currentPlayer;
@@ -349,7 +355,7 @@ function applySnapshot(snap) {
   game.forts = s.forts;
   game.isGameOver = s.isGameOver;
   game.winner = s.winner;
-  game.rev = snapRev;
+  if (hasSnapRev) game.rev = snapRev;
 }
 
 function buildSnapshot() { return game.toSnapshot ? game.toSnapshot() : {

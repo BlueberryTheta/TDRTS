@@ -16,6 +16,7 @@ function snapshot(game) {
       w: game.w, h: game.h, turn: game.turn, currentPlayer: game.currentPlayer,
       income: game.income, money: game.money, bases: game.bases, flags: game.flags,
       units: game.units, forts: game.forts, isGameOver: game.isGameOver, winner: game.winner,
+      rev: typeof game.rev === 'number' ? game.rev : 0,
     }
   };
 }
