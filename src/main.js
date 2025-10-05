@@ -635,3 +635,4 @@ function wireMpControls() {
   };
   if (copyBtnModal) copyBtnModal.onclick = () => { if (window.currentRoomId) navigator.clipboard?.writeText(buildInviteLink(window.currentRoomId)); };
 }
+
