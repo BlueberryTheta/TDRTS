@@ -578,9 +578,22 @@ async function initMultiplayer() {
     // Snapshot-only: apply locally, then persist+broadcast snapshot
     spawn: ({ kind, unitType, fortType, x, y }) => {
       if (game.currentPlayer !== mpClient.player) return;
+      // Ensure local owner context is correct for spawn
+      game.currentPlayer = mpClient.player;
       const spawnType = kind; // 'unit' or 'fort'
-      if (spawnType === 'unit') { const ut = UNIT_TYPES[unitType]; game.queueSpawn(ut); game.trySpawnAt(x, y); }
-      else { const ft = FORT_TYPES[fortType]; game.queueFort(ft); game.trySpawnAt(x, y); }
+      if (spawnType === 'unit') {
+        const ut = UNIT_TYPES[unitType];
+        game.queueSpawn(ut);
+        const created = game.trySpawnAt(x, y);
+        if (created && created.id && created.player === mpClient.player) {
+          game.selectedId = created.id;
+        }
+      } else {
+        const ft = FORT_TYPES[fortType];
+        game.queueFort(ft);
+        const created = game.trySpawnAt(x, y);
+        // Do not auto-select forts
+      }
       // Persist snapshot: HTTP always, WS only by host
       if (typeof mpClient.sync === 'function') {
         mpClient.sync(buildSnapshot());
@@ -590,6 +603,7 @@ async function initMultiplayer() {
     },
     buildFort: (fortType, engineerId, x, y) => {
       if (game.currentPlayer !== mpClient.player) return;
+      game.currentPlayer = mpClient.player;
       const eng = game.getUnitById(engineerId);
       if (!eng || eng.player !== mpClient.player) return; // enforce ownership
       game.selectedId = engineerId; const ft = FORT_TYPES[fortType]; game.queueFortBuild(ft); game.tryBuildAt(x, y);
@@ -598,6 +612,7 @@ async function initMultiplayer() {
     },
     move: (unitId, x, y) => {
       if (game.currentPlayer !== mpClient.player) return;
+      game.currentPlayer = mpClient.player;
       const u = game.getUnitById(unitId); if (!u || u.player !== mpClient.player) return; // enforce ownership
       game.moveUnitTo(u, x, y); game.checkFlagCapture(u);
       if (typeof mpClient.sync === 'function') { mpClient.sync(buildSnapshot()); }
@@ -605,6 +620,7 @@ async function initMultiplayer() {
     },
     attack: (attackerId, x, y) => {
       if (game.currentPlayer !== mpClient.player) return;
+      game.currentPlayer = mpClient.player;
       const a = game.getUnitById(attackerId); if (!a || a.player !== mpClient.player) return; // enforce ownership
       const enemy = game.getEnemyAt(x, y) || game.getFortAt(x, y); if (enemy) game.attack(a, enemy);
       if (typeof mpClient.sync === 'function') { mpClient.sync(buildSnapshot()); }
