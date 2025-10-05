@@ -134,6 +134,18 @@ window.addEventListener('resize', () => {
   setAccordionsOpenByViewport();
 });
 
+// MP Debug overlay toggle wiring
+function wireMpDebug() {
+  try {
+    const btn = document.getElementById('mpDebugToggle');
+    const ov = document.getElementById('mpDebugOverlay');
+    const close = document.getElementById('mpDebugClose');
+    if (btn && ov) btn.addEventListener('click', () => { ov.style.display = (ov.style.display === 'none' || !ov.style.display) ? 'block' : 'none'; });
+    if (close && ov) close.addEventListener('click', () => { ov.style.display = 'none'; });
+  } catch {}
+}
+wireMpDebug();
+
 // --- Landing (mode selection) ---
 const modeModal = document.getElementById('modeModal');
 const playVsAiBtn = document.getElementById('playVsAi');
@@ -243,6 +255,16 @@ function updateUI() {
     const evKind = (typeof window !== 'undefined' && window.__LAST_EVENT_KIND) ? window.__LAST_EVENT_KIND : '-';
     const evFrom = (typeof window !== 'undefined' && typeof window.__LAST_EVENT_FROM === 'number') ? `P${window.__LAST_EVENT_FROM+1}` : '';
     set('dbgEvent', evFrom ? `${evKind} by ${evFrom}` : evKind);
+    // Overlay mirrors
+    set('odbgTransport', transport.toString().toUpperCase());
+    set('odbgRoom', (typeof window !== 'undefined' && window.currentRoomId) ? window.currentRoomId : '-');
+    set('odbgPlayer', (mpClient && typeof mpClient.player === 'number') ? `P${mpClient.player+1}` : '-');
+    set('odbgPlayers', (typeof window !== 'undefined' && typeof window.mpPlayers === 'number') ? String(window.mpPlayers) : '-');
+    set('odbgTurn', String(game.turn));
+    set('odbgCP', `P${(game.currentPlayer+1)}`);
+    set('odbgRev', (typeof game.rev === 'number') ? String(game.rev) : '-');
+    set('odbgSnapRev', (typeof window !== 'undefined' && typeof window.__LAST_SNAPSHOT_REV === 'number') ? String(window.__LAST_SNAPSHOT_REV) : '-');
+    set('odbgEvent', evFrom ? `${evKind} by ${evFrom}` : evKind);
   } catch {}
 }
 
