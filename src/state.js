@@ -615,4 +615,28 @@ export class GameState {
     }
     return tiles;
   }
+
+  // Produce a deep-ish snapshot suitable for network sync
+  toSnapshot() {
+    const cloneUnits = this.units.map(u => ({ ...u }));
+    const cloneForts = this.forts.map(f => ({ ...f }));
+    const cloneFlags = this.flags.map(f => ({ ...f }));
+    const cloneBases = this.bases.map(b => ({ ...b }));
+    const cloneMoney = Array.isArray(this.money) ? [...this.money] : this.money;
+    return {
+      w: this.w,
+      h: this.h,
+      turn: this.turn,
+      currentPlayer: this.currentPlayer,
+      rev: this.rev,
+      income: this.income,
+      money: cloneMoney,
+      bases: cloneBases,
+      flags: cloneFlags,
+      units: cloneUnits,
+      forts: cloneForts,
+      isGameOver: this.isGameOver,
+      winner: this.winner,
+    };
+  }
 }

@@ -334,7 +334,10 @@ function showGameOver() {
 // --- Multiplayer wiring ---
 function applySnapshot(snap) {
   const s = snap.state;
-  // Hard overwrite: snapshots are the source of truth in snapshot-only mode
+  // Only apply if newer or if local rev is missing
+  const localRev = typeof game.rev === 'number' ? game.rev : -1;
+  const snapRev = typeof s.rev === 'number' ? s.rev : localRev + 1;
+  if (snapRev <= localRev) return;
   game.w = s.w; game.h = s.h;
   game.turn = s.turn;
   game.currentPlayer = s.currentPlayer;
@@ -346,26 +349,24 @@ function applySnapshot(snap) {
   game.forts = s.forts;
   game.isGameOver = s.isGameOver;
   game.winner = s.winner;
-  if (typeof s.rev === 'number') game.rev = s.rev; // keep rev if present
+  game.rev = snapRev;
 }
 
-function buildSnapshot() {
-  return {
-    w: game.w,
-    h: game.h,
-    turn: game.turn,
-    currentPlayer: game.currentPlayer,
-    rev: game.rev,
-    income: game.income,
-    money: game.money,
-    bases: game.bases,
-    flags: game.flags,
-    units: game.units,
-    forts: game.forts,
-    isGameOver: game.isGameOver,
-    winner: game.winner,
-  };
-}
+function buildSnapshot() { return game.toSnapshot ? game.toSnapshot() : {
+  w: game.w,
+  h: game.h,
+  turn: game.turn,
+  currentPlayer: game.currentPlayer,
+  rev: game.rev,
+  income: game.income,
+  money: game.money,
+  bases: game.bases,
+  flags: game.flags,
+  units: game.units,
+  forts: game.forts,
+  isGameOver: game.isGameOver,
+  winner: game.winner,
+}; }
 
 function applyActionLocal(action, byPlayer, isRemote=false) {
   // Ignore our own echoed remote events to avoid double-apply
@@ -439,7 +440,7 @@ async function initMultiplayer() {
     await mpClient.connect();
     window.MP_TRANSPORT = 'http';
     try { window.__MP_CLIENT = mpClient; } catch {}
-    try { window.SYNC_SNAPSHOT = () => { try { mpClient.sync(buildSnapshot()); } catch {} }; } catch {}
+    try { window.SYNC_SNAPSHOT = () => { try { const snap = buildSnapshot(); setTimeout(() => { try { mpClient.sync(snap); } catch {} }, 0); } catch {} }; } catch {}
   } else {
     mpClient = new MultiplayerClient(wsUrl);
     try {
@@ -447,7 +448,7 @@ async function initMultiplayer() {
       dlog('MP connected');
       window.MP_TRANSPORT = 'ws';
       try { window.__MP_CLIENT = mpClient; } catch {}
-      try { window.SYNC_SNAPSHOT = () => { try { mpClient.snapshot(buildSnapshot()); } catch {} }; } catch {}
+      try { window.SYNC_SNAPSHOT = () => { try { const snap = buildSnapshot(); setTimeout(() => { try { mpClient.snapshot(snap); } catch {} }, 0); } catch {} }; } catch {}
     } catch (e) {
       console.error('MP WS connect failed, falling back to HTTP', e);
       if (await httpAvailable()) {
@@ -455,7 +456,7 @@ async function initMultiplayer() {
         await mpClient.connect();
         window.MP_TRANSPORT = 'http';
         try { window.__MP_CLIENT = mpClient; } catch {}
-        try { window.SYNC_SNAPSHOT = () => { try { mpClient.sync(buildSnapshot()); } catch {} }; } catch {}
+        try { window.SYNC_SNAPSHOT = () => { try { const snap = buildSnapshot(); setTimeout(() => { try { mpClient.sync(snap); } catch {} }, 0); } catch {} }; } catch {}
       } else {
         window.MP_TRANSPORT = 'unavailable';
       }
