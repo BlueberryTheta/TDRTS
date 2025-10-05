@@ -76,16 +76,19 @@ export function attachInput(canvas, tileSize, game, hooks) {
     const sel = game.getUnitById(game.selectedId);
     const enemy = game.getEnemyAt(x, y);
     const fort = game.getFortAt(x, y);
-    // If clicking your own unit, select it
+    // Determine viewer (local player) for selection, independent of turn
+    const viewer = (typeof window !== 'undefined' && typeof window.MY_PLAYER === 'number') ? window.MY_PLAYER : game.currentPlayer;
+    // If clicking your own unit (from viewer's perspective), select it
     if (!sel) {
-      game.selectUnitAt(x, y);
+      const unit = game.units.find(u => u.x === x && u.y === y && u.player === viewer) || null;
+      game.selectedId = unit ? unit.id : null;
       return;
     }
 
     // If clicked another of your units, switch selection
-    const ownHere = game.units.find(u => u.x === x && u.y === y && u.player === game.currentPlayer);
+    const ownHere = game.units.find(u => u.x === x && u.y === y && u.player === viewer);
     if (ownHere) {
-      game.selectUnitAt(x, y);
+      game.selectedId = ownHere.id;
       return;
     }
 
