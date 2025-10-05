@@ -333,29 +333,26 @@ function showGameOver() {
 // --- Multiplayer wiring ---
 function applySnapshot(snap) {
   const s = snap.state;
-  dlog('Apply snapshot', { turn: s.turn, currentPlayer: s.currentPlayer, units: s.units?.length, forts: s.forts?.length, flags: s.flags });
+  // Freshness guard: require newer revision
+  if (typeof s.rev === 'number' && typeof game.rev === 'number' && s.rev <= (game.rev || 0)) return;
+  // Short-circuit if applied from very recent local change to avoid flicker
   try {
     const now = Date.now();
     if (typeof window !== 'undefined' && typeof window.__lastLocalApplyTs === 'number') {
-      if (now - window.__lastLocalApplyTs < 1500) {
-        dlog('Skip snapshot due to recent local apply', { ageMs: now - window.__lastLocalApplyTs });
-        return;
-      }
+      if (now - window.__lastLocalApplyTs < 250) return;
     }
   } catch {}
-  // Replace mutable fields, but never roll back turn/currentPlayer
+  // Apply full state
   game.w = s.w; game.h = s.h;
   if (typeof s.turn === 'number' && s.turn >= (game.turn || 0)) {
     game.turn = s.turn;
     if (typeof s.currentPlayer === 'number') game.currentPlayer = s.currentPlayer;
-  } else {
-    dlog('Skip snapshot turn rollback', { snapTurn: s.turn, localTurn: game.turn, snapCP: s.currentPlayer, localCP: game.currentPlayer });
   }
   game.income = s.income; game.money = s.money;
   game.bases = s.bases; game.flags = s.flags;
   game.units = s.units; game.forts = s.forts;
   game.isGameOver = s.isGameOver; game.winner = s.winner;
-  try { window.__lastSnapshotAt = Date.now(); } catch {}
+  game.rev = typeof s.rev === 'number' ? s.rev : (game.rev || 0);
 }
 
 function buildSnapshot() {
@@ -499,7 +496,8 @@ async function initMultiplayer() {
     // If this was our own endTurn event echoed back, persist a snapshot after applying
     try {
       if (msg.action?.kind === 'endTurn' && typeof mpClient.snapshot === 'function' && typeof mpClient.player === 'number' && msg.player === mpClient.player) {
-        mpClient.snapshot(buildSnapshot());
+        // Persist and broadcast full state after turn switch
+        if (typeof mpClient.sync === 'function') mpClient.sync(buildSnapshot()); else mpClient.snapshot(buildSnapshot());
       }
     } catch {}
     try { window.__lastEvtSeq = typeof msg.seq === 'number' ? msg.seq : (window.__lastEvtSeq || null); } catch {}
@@ -526,8 +524,8 @@ async function initMultiplayer() {
       if (spawnType === 'unit') { const ut = UNIT_TYPES[unitType]; game.queueSpawn(ut); game.trySpawnAt(x, y); }
       else { const ft = FORT_TYPES[fortType]; game.queueFort(ft); game.trySpawnAt(x, y); }
       try { window.__lastLocalApplyTs = Date.now(); } catch {}
-      // Persist snapshot (esp. important for HTTP MP)
-      try { if (typeof mpClient.snapshot === 'function') mpClient.snapshot(buildSnapshot()); } catch {}
+      // Persist+broadcast snapshot so the other side can converge
+      try { if (typeof mpClient.sync === 'function') mpClient.sync(buildSnapshot()); else if (typeof mpClient.snapshot === 'function') mpClient.snapshot(buildSnapshot()); } catch {}
     },
     buildFort: (fortType, engineerId, x, y) => {
       try { console.log('HOOK buildFort intent', { fortType, engineerId, x, y, turn: game.turn, cp: game.currentPlayer, me: mpClient?.player }); } catch {}
@@ -536,7 +534,7 @@ async function initMultiplayer() {
       try { mpClient.action({ kind: 'buildFort', fortType, engineerId, x, y }); if (typeof window !== 'undefined') window.__LAST_HOOK_SENT = true; } catch {}
       game.selectedId = engineerId; const ft = FORT_TYPES[fortType]; game.queueFortBuild(ft); game.tryBuildAt(x, y);
       try { window.__lastLocalApplyTs = Date.now(); } catch {}
-      try { if (typeof mpClient.snapshot === 'function') mpClient.snapshot(buildSnapshot()); } catch {}
+      try { if (typeof mpClient.sync === 'function') mpClient.sync(buildSnapshot()); else if (typeof mpClient.snapshot === 'function') mpClient.snapshot(buildSnapshot()); } catch {}
     },
     move: (unitId, x, y) => {
       try { console.log('HOOK move intent', { unitId, x, y, turn: game.turn, cp: game.currentPlayer, me: mpClient?.player }); } catch {}
@@ -545,7 +543,7 @@ async function initMultiplayer() {
       try { mpClient.action({ kind: 'move', unitId, x, y }); if (typeof window !== 'undefined') window.__LAST_HOOK_SENT = true; } catch {}
       const u = game.getUnitById(unitId); if (u) { game.moveUnitTo(u, x, y); game.checkFlagCapture(u); }
       try { window.__lastLocalApplyTs = Date.now(); } catch {}
-      try { if (typeof mpClient.snapshot === 'function') mpClient.snapshot(buildSnapshot()); } catch {}
+      try { if (typeof mpClient.sync === 'function') mpClient.sync(buildSnapshot()); else if (typeof mpClient.snapshot === 'function') mpClient.snapshot(buildSnapshot()); } catch {}
     },
     attack: (attackerId, x, y) => {
       try { console.log('HOOK attack intent', { attackerId, x, y, turn: game.turn, cp: game.currentPlayer, me: mpClient?.player }); } catch {}
@@ -554,7 +552,7 @@ async function initMultiplayer() {
       try { mpClient.action({ kind: 'attack', attackerId, x, y }); if (typeof window !== 'undefined') window.__LAST_HOOK_SENT = true; } catch {}
       const a = game.getUnitById(attackerId); const enemy = game.getEnemyAt(x, y) || game.getFortAt(x, y); if (a && enemy) game.attack(a, enemy);
       try { window.__lastLocalApplyTs = Date.now(); } catch {}
-      try { if (typeof mpClient.snapshot === 'function') mpClient.snapshot(buildSnapshot()); } catch {}
+      try { if (typeof mpClient.sync === 'function') mpClient.sync(buildSnapshot()); else if (typeof mpClient.snapshot === 'function') mpClient.snapshot(buildSnapshot()); } catch {}
     },
   };
   // Reattach input with hooks

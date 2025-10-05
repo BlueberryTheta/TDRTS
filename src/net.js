@@ -101,6 +101,20 @@ export class HttpMPClient {
   async snapshot(state){
     await fetch('/api/mp/snapshot', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ roomId: this.roomId, state }) });
   }
+  async sync(state){
+    // Persist snapshot and append a sync event so the other side advances
+    try {
+      const res = await fetch('/api/mp/sync', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ roomId: this.roomId, player: this.player, state }) });
+      // ignore body; poll loop will pick up event and/or snapshot
+      if (!res.ok) {
+        this.dlog('sync error', res.status);
+        this.emit('error', { type:'sync', status: res.status, message: 'sync failed' });
+      }
+    } catch (e) {
+      this.dlog('sync network error', e);
+      this.emit('error', { type:'sync', message: String(e) });
+    }
+  }
   async startPolling(){ if(this.polling) return; this.polling = true; this.dlog('polling start');
     const loop = async () => {
       try {
