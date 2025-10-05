@@ -516,6 +516,8 @@ async function initMultiplayer() {
       if (typeof mpClient.snapshot === 'function') mpClient.snapshot(buildSnapshot());
     } catch (e) { console.error('MP request_state snapshot failed', e); }
   });
+  // Mark that WS event handlers are registered (debug aid)
+  try { window.__MP_EVENT_HANDLERS = true; } catch {}
   if (typeof mpClient.on === 'function') {
     mpClient.on('error', (err) => { console.error('MP ERROR action', err?.status || '', err?.message || ''); });
   }
