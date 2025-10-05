@@ -439,6 +439,7 @@ async function initMultiplayer() {
     await mpClient.connect();
     window.MP_TRANSPORT = 'http';
     try { window.__MP_CLIENT = mpClient; } catch {}
+    try { window.SYNC_SNAPSHOT = () => { try { mpClient.sync(buildSnapshot()); } catch {} }; } catch {}
   } else {
     mpClient = new MultiplayerClient(wsUrl);
     try {
@@ -446,6 +447,7 @@ async function initMultiplayer() {
       dlog('MP connected');
       window.MP_TRANSPORT = 'ws';
       try { window.__MP_CLIENT = mpClient; } catch {}
+      try { window.SYNC_SNAPSHOT = () => { try { mpClient.snapshot(buildSnapshot()); } catch {} }; } catch {}
     } catch (e) {
       console.error('MP WS connect failed, falling back to HTTP', e);
       if (await httpAvailable()) {
@@ -453,6 +455,7 @@ async function initMultiplayer() {
         await mpClient.connect();
         window.MP_TRANSPORT = 'http';
         try { window.__MP_CLIENT = mpClient; } catch {}
+        try { window.SYNC_SNAPSHOT = () => { try { mpClient.sync(buildSnapshot()); } catch {} }; } catch {}
       } else {
         window.MP_TRANSPORT = 'unavailable';
       }
