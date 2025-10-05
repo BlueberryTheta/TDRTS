@@ -496,8 +496,26 @@ async function initMultiplayer() {
     showRoomBanner(roomId, player);
     const modeEl = document.getElementById('modeModal'); if (modeEl) modeEl.style.display = 'none';
   });
-  // Snapshot-only: just apply snapshots from poller
+  // Snapshot-only: just apply snapshots from poller/WS relay
   mpClient.on('snapshot', (msg) => { applySnapshot(msg); });
+  // WS relay: apply remote actions in real-time so peers see each other immediately
+  mpClient.on('event', (msg) => {
+    try {
+      const { player, action, currentPlayer } = msg || {};
+      if (action) {
+        applyActionLocal(action, typeof player === 'number' ? player : -1, true);
+      }
+      if (typeof currentPlayer === 'number') {
+        game.currentPlayer = currentPlayer;
+      }
+    } catch (e) { console.error('MP event apply failed', e); }
+  });
+  // WS relay may ask a host to provide the latest snapshot
+  mpClient.on('request_state', () => {
+    try {
+      if (typeof mpClient.snapshot === 'function') mpClient.snapshot(buildSnapshot());
+    } catch (e) { console.error('MP request_state snapshot failed', e); }
+  });
   if (typeof mpClient.on === 'function') {
     mpClient.on('error', (err) => { console.error('MP ERROR action', err?.status || '', err?.message || ''); });
   }
