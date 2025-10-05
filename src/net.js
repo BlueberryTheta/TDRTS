@@ -118,25 +118,11 @@ export class HttpMPClient {
   async startPolling(){ if(this.polling) return; this.polling = true; this.dlog('polling start');
     const loop = async () => {
       try {
-        const url = `/api/mp/poll?room=${encodeURIComponent(this.roomId)}&since=${this.seq}`;
+        // Snapshot-only: force snapshot include each poll
+        const url = `/api/mp/poll?room=${encodeURIComponent(this.roomId)}&since=0`;
         const res = await fetch(url, { headers:{ 'Cache-Control':'no-cache' } });
         const data = await res.json();
-        this.dlog('poll summary', { since: this.seq, events: Array.isArray(data.events) ? data.events.length : 0, currentPlayer: data.currentPlayer, hasSnapshot: !!data.snapshot, lastSeq: data.lastSeq });
-        const hasEvents = Array.isArray(data.events) && data.events.length > 0;
-        if (hasEvents) {
-          for (const evt of data.events) {
-            this.seq = Math.max(this.seq, evt.seq || 0);
-            if (evt.type === 'event') this.emit('event', evt);
-          }
-        }
-        // Inform client of currentPlayer only when no events to avoid overriding fresh event state
-        if (!hasEvents && typeof data.currentPlayer === 'number') {
-          this.emit('event', { type:'event', player: null, seq: this.seq, currentPlayer: data.currentPlayer });
-        }
-        // Always emit snapshot; applySnapshot performs freshness checks (rev) client-side
-        if (data.snapshot) {
-          this.emit('snapshot', { type:'snapshot', state: data.snapshot });
-        }
+        if (data.snapshot) this.emit('snapshot', { type:'snapshot', state: data.snapshot });
         if (typeof data.players === 'number') this.emit('players', data.players);
       } catch(e) { this.dlog('poll error', e); }
       if (this.polling) setTimeout(loop, 300);
