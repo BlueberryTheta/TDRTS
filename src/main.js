@@ -334,26 +334,19 @@ function showGameOver() {
 // --- Multiplayer wiring ---
 function applySnapshot(snap) {
   const s = snap.state;
-  // Freshness guard: require newer revision
-  if (typeof s.rev === 'number' && typeof game.rev === 'number' && s.rev <= (game.rev || 0)) return;
-  // Short-circuit if applied from very recent local change to avoid flicker
-  try {
-    const now = Date.now();
-    if (typeof window !== 'undefined' && typeof window.__lastLocalApplyTs === 'number') {
-      if (now - window.__lastLocalApplyTs < 250) return;
-    }
-  } catch {}
-  // Apply full state
+  // Hard overwrite: snapshots are the source of truth in snapshot-only mode
   game.w = s.w; game.h = s.h;
-  if (typeof s.turn === 'number' && s.turn >= (game.turn || 0)) {
-    game.turn = s.turn;
-    if (typeof s.currentPlayer === 'number') game.currentPlayer = s.currentPlayer;
-  }
-  game.income = s.income; game.money = s.money;
-  game.bases = s.bases; game.flags = s.flags;
-  game.units = s.units; game.forts = s.forts;
-  game.isGameOver = s.isGameOver; game.winner = s.winner;
-  game.rev = typeof s.rev === 'number' ? s.rev : (game.rev || 0);
+  game.turn = s.turn;
+  game.currentPlayer = s.currentPlayer;
+  game.income = s.income;
+  game.money = s.money;
+  game.bases = s.bases;
+  game.flags = s.flags;
+  game.units = s.units;
+  game.forts = s.forts;
+  game.isGameOver = s.isGameOver;
+  game.winner = s.winner;
+  if (typeof s.rev === 'number') game.rev = s.rev; // keep rev if present
 }
 
 function buildSnapshot() {
