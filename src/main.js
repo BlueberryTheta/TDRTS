@@ -227,6 +227,23 @@ function updateUI() {
       }
     }
   }
+
+  // MP Debug Panel update (if present)
+  try {
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = (v ?? '-').toString(); };
+    const transport = (typeof window !== 'undefined' && window.MP_TRANSPORT) ? window.MP_TRANSPORT : (mpClient ? (typeof mpClient.sync === 'function' ? 'http' : 'ws') : '-');
+    set('dbgTransport', transport.toString().toUpperCase());
+    set('dbgRoom', (typeof window !== 'undefined' && window.currentRoomId) ? window.currentRoomId : '-');
+    set('dbgPlayer', (mpClient && typeof mpClient.player === 'number') ? `P${mpClient.player+1}` : '-');
+    set('dbgPlayers', (typeof window !== 'undefined' && typeof window.mpPlayers === 'number') ? String(window.mpPlayers) : '-');
+    set('dbgTurn', String(game.turn));
+    set('dbgCP', `P${(game.currentPlayer+1)}`);
+    set('dbgRev', (typeof game.rev === 'number') ? String(game.rev) : '-');
+    set('dbgSnapRev', (typeof window !== 'undefined' && typeof window.__LAST_SNAPSHOT_REV === 'number') ? String(window.__LAST_SNAPSHOT_REV) : '-');
+    const evKind = (typeof window !== 'undefined' && window.__LAST_EVENT_KIND) ? window.__LAST_EVENT_KIND : '-';
+    const evFrom = (typeof window !== 'undefined' && typeof window.__LAST_EVENT_FROM === 'number') ? `P${window.__LAST_EVENT_FROM+1}` : '';
+    set('dbgEvent', evFrom ? `${evKind} by ${evFrom}` : evKind);
+  } catch {}
 }
 
 function animate() {
@@ -273,7 +290,8 @@ ui.shop.addEventListener('click', (e) => {
 ui.endTurn.addEventListener('click', () => {
   if (MODE === 'mp' && mpClient) {
     game.endTurn();
-    if (typeof mpClient.sync === 'function') mpClient.sync(buildSnapshot()); else if (typeof mpClient.snapshot === 'function') mpClient.snapshot(buildSnapshot());
+    if (typeof mpClient.sync === 'function') { mpClient.sync(buildSnapshot()); }
+    else if (typeof mpClient.snapshot === 'function') { if (typeof mpClient.player === 'number' && mpClient.player === 0) mpClient.snapshot(buildSnapshot()); }
   } else {
     game.endTurn();
     maybeRunAI();
@@ -281,7 +299,7 @@ ui.endTurn.addEventListener('click', () => {
 });
 if (ui.endTurnTop) {
   ui.endTurnTop.addEventListener('click', () => {
-    if (MODE === 'mp' && mpClient) { game.endTurn(); if (typeof mpClient.sync === 'function') mpClient.sync(buildSnapshot()); else if (typeof mpClient.snapshot === 'function') mpClient.snapshot(buildSnapshot()); }
+    if (MODE === 'mp' && mpClient) { game.endTurn(); if (typeof mpClient.sync === 'function') { mpClient.sync(buildSnapshot()); } else if (typeof mpClient.snapshot === 'function') { if (typeof mpClient.player === 'number' && mpClient.player === 0) mpClient.snapshot(buildSnapshot()); } }
     else { game.endTurn(); maybeRunAI(); }
   });
 }
@@ -489,21 +507,16 @@ async function initMultiplayer() {
     // If host, send initial snapshot and start a light heartbeat to ensure persistence
     if (player === 0) {
       const snap = buildSnapshot();
+      // Send one initial snapshot; remove periodic heartbeat to prevent stale overwrites
       if (typeof mpClient.sync === 'function') mpClient.sync(snap); else if (typeof mpClient.snapshot === 'function') mpClient.snapshot(snap);
-      try {
-        if (!window.__SYNC_HEARTBEAT) {
-          window.__SYNC_HEARTBEAT = setInterval(() => {
-            try { if (typeof window.SYNC_SNAPSHOT === 'function') window.SYNC_SNAPSHOT(); } catch {}
-          }, 750);
-        }
-      } catch {}
+      try { window.__SYNC_HEARTBEAT = false; } catch {}
     }
     // Update banner and close modal
     showRoomBanner(roomId, player);
     const modeEl = document.getElementById('modeModal'); if (modeEl) modeEl.style.display = 'none';
   });
   // Snapshot-only: just apply snapshots from poller/WS relay
-  mpClient.on('snapshot', (msg) => { applySnapshot(msg); });
+  mpClient.on('snapshot', (msg) => { try { applySnapshot(msg); } finally { try { if (msg && msg.state && typeof msg.state.rev === 'number') window.__LAST_SNAPSHOT_REV = msg.state.rev; } catch {} } });
   // WS relay: apply remote actions in real-time so peers see each other immediately
   mpClient.on('event', (msg) => {
     try {
@@ -513,6 +526,18 @@ async function initMultiplayer() {
       }
       if (typeof currentPlayer === 'number') {
         game.currentPlayer = currentPlayer;
+      }
+      try { window.__LAST_EVENT_KIND = (action && action.kind) ? action.kind : 'sync'; window.__LAST_EVENT_FROM = player; } catch {}
+      // After applying a remote action, publish authoritative snapshot
+      const using = (typeof window !== 'undefined' && window.MP_TRANSPORT) ? window.MP_TRANSPORT : 'unknown';
+      if (typeof mpClient?.sync === 'function') {
+        // HTTP: persist+append sync event
+        mpClient.sync(buildSnapshot());
+      } else if (typeof mpClient?.snapshot === 'function') {
+        // WS relay: host sends snapshots
+        if (typeof mpClient.player === 'number' && mpClient.player === 0) {
+          mpClient.snapshot(buildSnapshot());
+        }
       }
     } catch (e) { console.error('MP event apply failed', e); }
   });
@@ -541,22 +566,30 @@ async function initMultiplayer() {
       const spawnType = kind; // 'unit' or 'fort'
       if (spawnType === 'unit') { const ut = UNIT_TYPES[unitType]; game.queueSpawn(ut); game.trySpawnAt(x, y); }
       else { const ft = FORT_TYPES[fortType]; game.queueFort(ft); game.trySpawnAt(x, y); }
-      if (typeof mpClient.sync === 'function') mpClient.sync(buildSnapshot()); else if (typeof mpClient.snapshot === 'function') mpClient.snapshot(buildSnapshot());
+      // Persist snapshot: HTTP always, WS only by host
+      if (typeof mpClient.sync === 'function') {
+        mpClient.sync(buildSnapshot());
+      } else if (typeof mpClient.snapshot === 'function') {
+        if (typeof mpClient.player === 'number' && mpClient.player === 0) mpClient.snapshot(buildSnapshot());
+      }
     },
     buildFort: (fortType, engineerId, x, y) => {
       if (game.currentPlayer !== mpClient.player) return;
       game.selectedId = engineerId; const ft = FORT_TYPES[fortType]; game.queueFortBuild(ft); game.tryBuildAt(x, y);
-      if (typeof mpClient.sync === 'function') mpClient.sync(buildSnapshot()); else if (typeof mpClient.snapshot === 'function') mpClient.snapshot(buildSnapshot());
+      if (typeof mpClient.sync === 'function') { mpClient.sync(buildSnapshot()); }
+      else if (typeof mpClient.snapshot === 'function') { if (typeof mpClient.player === 'number' && mpClient.player === 0) mpClient.snapshot(buildSnapshot()); }
     },
     move: (unitId, x, y) => {
       if (game.currentPlayer !== mpClient.player) return;
       const u = game.getUnitById(unitId); if (u) { game.moveUnitTo(u, x, y); game.checkFlagCapture(u); }
-      if (typeof mpClient.sync === 'function') mpClient.sync(buildSnapshot()); else if (typeof mpClient.snapshot === 'function') mpClient.snapshot(buildSnapshot());
+      if (typeof mpClient.sync === 'function') { mpClient.sync(buildSnapshot()); }
+      else if (typeof mpClient.snapshot === 'function') { if (typeof mpClient.player === 'number' && mpClient.player === 0) mpClient.snapshot(buildSnapshot()); }
     },
     attack: (attackerId, x, y) => {
       if (game.currentPlayer !== mpClient.player) return;
       const a = game.getUnitById(attackerId); const enemy = game.getEnemyAt(x, y) || game.getFortAt(x, y); if (a && enemy) game.attack(a, enemy);
-      if (typeof mpClient.sync === 'function') mpClient.sync(buildSnapshot()); else if (typeof mpClient.snapshot === 'function') mpClient.snapshot(buildSnapshot());
+      if (typeof mpClient.sync === 'function') { mpClient.sync(buildSnapshot()); }
+      else if (typeof mpClient.snapshot === 'function') { if (typeof mpClient.player === 'number' && mpClient.player === 0) mpClient.snapshot(buildSnapshot()); }
     },
   };
   // Reattach input with hooks
