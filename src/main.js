@@ -259,32 +259,7 @@ function updateUI() {
     }
   }
 
-  // MP Debug Panel update (if present)
-  try {
-    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = (v ?? '-').toString(); };
-    const transport = (typeof window !== 'undefined' && window.MP_TRANSPORT) ? window.MP_TRANSPORT : (mpClient ? (typeof mpClient.sync === 'function' ? 'http' : 'ws') : '-');
-    set('dbgTransport', transport.toString().toUpperCase());
-    set('dbgRoom', (typeof window !== 'undefined' && window.currentRoomId) ? window.currentRoomId : '-');
-    set('dbgPlayer', (mpClient && typeof mpClient.player === 'number') ? `P${mpClient.player+1}` : '-');
-    set('dbgPlayers', (typeof window !== 'undefined' && typeof window.mpPlayers === 'number') ? String(window.mpPlayers) : '-');
-    set('dbgTurn', String(game.turn));
-    set('dbgCP', `P${(game.currentPlayer+1)}`);
-    set('dbgRev', (typeof game.rev === 'number') ? String(game.rev) : '-');
-    set('dbgSnapRev', (typeof window !== 'undefined' && typeof window.__LAST_SNAPSHOT_REV === 'number') ? String(window.__LAST_SNAPSHOT_REV) : '-');
-    const evKind = (typeof window !== 'undefined' && window.__LAST_EVENT_KIND) ? window.__LAST_EVENT_KIND : '-';
-    const evFrom = (typeof window !== 'undefined' && typeof window.__LAST_EVENT_FROM === 'number') ? `P${window.__LAST_EVENT_FROM+1}` : '';
-    set('dbgEvent', evFrom ? `${evKind} by ${evFrom}` : evKind);
-    // Overlay mirrors
-    set('odbgTransport', transport.toString().toUpperCase());
-    set('odbgRoom', (typeof window !== 'undefined' && window.currentRoomId) ? window.currentRoomId : '-');
-    set('odbgPlayer', (mpClient && typeof mpClient.player === 'number') ? `P${mpClient.player+1}` : '-');
-    set('odbgPlayers', (typeof window !== 'undefined' && typeof window.mpPlayers === 'number') ? String(window.mpPlayers) : '-');
-    set('odbgTurn', String(game.turn));
-    set('odbgCP', `P${(game.currentPlayer+1)}`);
-    set('odbgRev', (typeof game.rev === 'number') ? String(game.rev) : '-');
-    set('odbgSnapRev', (typeof window !== 'undefined' && typeof window.__LAST_SNAPSHOT_REV === 'number') ? String(window.__LAST_SNAPSHOT_REV) : '-');
-    set('odbgEvent', evFrom ? `${evKind} by ${evFrom}` : evKind);
-  } catch {}
+  // (MP Debug UI removed)
 }
 
 function animate() {
@@ -557,7 +532,7 @@ async function initMultiplayer() {
     const modeEl = document.getElementById('modeModal'); if (modeEl) modeEl.style.display = 'none';
   });
   // Snapshot-only: just apply snapshots from poller/WS relay
-  mpClient.on('snapshot', (msg) => { try { applySnapshot(msg); } finally { try { if (msg && msg.state && typeof msg.state.rev === 'number') window.__LAST_SNAPSHOT_REV = msg.state.rev; } catch {} } });
+  mpClient.on('snapshot', (msg) => { applySnapshot(msg); });
   // WS relay: apply remote actions in real-time so peers see each other immediately
   mpClient.on('event', (msg) => {
     try {
@@ -568,7 +543,6 @@ async function initMultiplayer() {
       if (typeof currentPlayer === 'number') {
         game.currentPlayer = currentPlayer;
       }
-      try { window.__LAST_EVENT_KIND = (action && action.kind) ? action.kind : 'sync'; window.__LAST_EVENT_FROM = player; } catch {}
       // After applying a remote action, publish authoritative snapshot
       const using = (typeof window !== 'undefined' && window.MP_TRANSPORT) ? window.MP_TRANSPORT : 'unknown';
       if (typeof mpClient?.sync === 'function') {

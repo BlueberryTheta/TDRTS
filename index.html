@@ -102,16 +102,6 @@
             <li>Capture the enemy flag by moving onto it, then bring it back to your base.</li>
           </ul>
         </details>
-        <hr />
-        <details id="mpDebug" class="panel accordion">
-          <summary>MP Debug</summary>
-          <div class="hint">Transport: <span id="dbgTransport">-</span></div>
-          <div class="hint">Room: <span id="dbgRoom">-</span></div>
-          <div class="hint">Player: <span id="dbgPlayer">-</span> (Players: <span id="dbgPlayers">-</span>)</div>
-          <div class="hint">Turn: <span id="dbgTurn">-</span> | Current Player: <span id="dbgCP">-</span></div>
-          <div class="hint">Rev: <span id="dbgRev">-</span> | Last Snap Rev: <span id="dbgSnapRev">-</span></div>
-          <div class="hint">Last Event: <span id="dbgEvent">-</span></div>
-        </details>
       </div>
     </div>
     <!-- Game Over Modal -->
@@ -162,26 +152,6 @@
           <summary>Online Multiplayer</summary>
           <p class="hint">Create or join a room to play with a friend. Copy and share the invite link.</p>
         </details>
-      </div>
-    </div>
-    <!-- MP Debug Overlay -->
-    <button id="mpDebugToggle" class="mp-debug-toggle" title="MP Debug">MP</button>
-    <div id="mpDebugOverlay" class="mp-debug-overlay" style="display:none" role="region" aria-label="MP Debug">
-      <div class="mp-debug-header">
-        <strong>MP Debug</strong>
-        <div class="hud-spacer"></div>
-        <button id="mpDebugClose" class="hud-button" aria-label="Close">×</button>
-      </div>
-      <div class="mp-debug-grid">
-        <div>Transport: <span id="odbgTransport">-</span></div>
-        <div>Room: <span id="odbgRoom">-</span></div>
-        <div>Player: <span id="odbgPlayer">-</span></div>
-        <div>Players: <span id="odbgPlayers">-</span></div>
-        <div>Turn: <span id="odbgTurn">-</span></div>
-        <div>CP: <span id="odbgCP">-</span></div>
-        <div>Rev: <span id="odbgRev">-</span></div>
-        <div>Snap Rev: <span id="odbgSnapRev">-</span></div>
-        <div>Last: <span id="odbgEvent">-</span></div>
       </div>
     </div>
     <script type="module" src="src/main.js"></script>
