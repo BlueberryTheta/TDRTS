@@ -480,8 +480,18 @@ async function initMultiplayer() {
       if (using === 'unavailable') extra = `<div class="hint" style="color:#f85149">Multiplayer backend unavailable. Configure Neon/Postgres or force WebSocket for testing.</div>`;
       info.innerHTML = `<summary>Online Multiplayer</summary><div class="hint">Room: <strong>${roomId}</strong><br/>Share this link: <code>?mode=mp&room=${roomId}</code><br/>Transport: <strong>${using.toUpperCase()}</strong></div>${extra}`;
     }
-    // If host, send initial snapshot
-    if (player === 0) mpClient.snapshot(buildSnapshot());
+    // If host, send initial snapshot and start a light heartbeat to ensure persistence
+    if (player === 0) {
+      const snap = buildSnapshot();
+      if (typeof mpClient.sync === 'function') mpClient.sync(snap); else if (typeof mpClient.snapshot === 'function') mpClient.snapshot(snap);
+      try {
+        if (!window.__SYNC_HEARTBEAT) {
+          window.__SYNC_HEARTBEAT = setInterval(() => {
+            try { if (typeof window.SYNC_SNAPSHOT === 'function') window.SYNC_SNAPSHOT(); } catch {}
+          }, 750);
+        }
+      } catch {}
+    }
     // Update banner and close modal
     showRoomBanner(roomId, player);
     const modeEl = document.getElementById('modeModal'); if (modeEl) modeEl.style.display = 'none';
