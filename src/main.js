@@ -590,19 +590,23 @@ async function initMultiplayer() {
     },
     buildFort: (fortType, engineerId, x, y) => {
       if (game.currentPlayer !== mpClient.player) return;
+      const eng = game.getUnitById(engineerId);
+      if (!eng || eng.player !== mpClient.player) return; // enforce ownership
       game.selectedId = engineerId; const ft = FORT_TYPES[fortType]; game.queueFortBuild(ft); game.tryBuildAt(x, y);
       if (typeof mpClient.sync === 'function') { mpClient.sync(buildSnapshot()); }
       else if (typeof mpClient.snapshot === 'function') { if (typeof mpClient.player === 'number' && mpClient.player === 0) mpClient.snapshot(buildSnapshot()); }
     },
     move: (unitId, x, y) => {
       if (game.currentPlayer !== mpClient.player) return;
-      const u = game.getUnitById(unitId); if (u) { game.moveUnitTo(u, x, y); game.checkFlagCapture(u); }
+      const u = game.getUnitById(unitId); if (!u || u.player !== mpClient.player) return; // enforce ownership
+      game.moveUnitTo(u, x, y); game.checkFlagCapture(u);
       if (typeof mpClient.sync === 'function') { mpClient.sync(buildSnapshot()); }
       else if (typeof mpClient.snapshot === 'function') { if (typeof mpClient.player === 'number' && mpClient.player === 0) mpClient.snapshot(buildSnapshot()); }
     },
     attack: (attackerId, x, y) => {
       if (game.currentPlayer !== mpClient.player) return;
-      const a = game.getUnitById(attackerId); const enemy = game.getEnemyAt(x, y) || game.getFortAt(x, y); if (a && enemy) game.attack(a, enemy);
+      const a = game.getUnitById(attackerId); if (!a || a.player !== mpClient.player) return; // enforce ownership
+      const enemy = game.getEnemyAt(x, y) || game.getFortAt(x, y); if (enemy) game.attack(a, enemy);
       if (typeof mpClient.sync === 'function') { mpClient.sync(buildSnapshot()); }
       else if (typeof mpClient.snapshot === 'function') { if (typeof mpClient.player === 'number' && mpClient.player === 0) mpClient.snapshot(buildSnapshot()); }
     },

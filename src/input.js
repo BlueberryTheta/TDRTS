@@ -27,6 +27,12 @@ export function attachInput(canvas, tileSize, game, hooks) {
     // Recompute visibility for accurate fog interactions
     if (typeof game.recomputeVisibility === 'function') game.recomputeVisibility();
     const { x, y } = computeTile(clientX, clientY);
+    // Ensure selection never points at an enemy unit in MP viewer context
+    const viewer = (typeof window !== 'undefined' && typeof window.MY_PLAYER === 'number') ? window.MY_PLAYER : game.currentPlayer;
+    const curSel = game.getUnitById(game.selectedId);
+    if (curSel && curSel.player !== viewer) {
+      game.selectedId = null;
+    }
 
     // If an engineer build is queued, try to build here first
     if (game.buildQueue) {
@@ -77,7 +83,7 @@ export function attachInput(canvas, tileSize, game, hooks) {
     const enemy = game.getEnemyAt(x, y);
     const fort = game.getFortAt(x, y);
     // Determine viewer (local player) for selection, independent of turn
-    const viewer = (typeof window !== 'undefined' && typeof window.MY_PLAYER === 'number') ? window.MY_PLAYER : game.currentPlayer;
+    // viewer computed above
     // If clicking your own unit (from viewer's perspective), select it
     if (!sel) {
       const unit = game.units.find(u => u.x === x && u.y === y && u.player === viewer) || null;
