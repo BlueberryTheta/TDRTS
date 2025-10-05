@@ -272,7 +272,8 @@ ui.shop.addEventListener('click', (e) => {
 // End turn button
 ui.endTurn.addEventListener('click', () => {
   if (MODE === 'mp' && mpClient) {
-    mpClient.action({ kind: 'endTurn' });
+    game.endTurn();
+    if (typeof mpClient.sync === 'function') mpClient.sync(buildSnapshot()); else if (typeof mpClient.snapshot === 'function') mpClient.snapshot(buildSnapshot());
   } else {
     game.endTurn();
     maybeRunAI();
@@ -280,7 +281,7 @@ ui.endTurn.addEventListener('click', () => {
 });
 if (ui.endTurnTop) {
   ui.endTurnTop.addEventListener('click', () => {
-    if (MODE === 'mp' && mpClient) mpClient.action({ kind: 'endTurn' });
+    if (MODE === 'mp' && mpClient) { game.endTurn(); if (typeof mpClient.sync === 'function') mpClient.sync(buildSnapshot()); else if (typeof mpClient.snapshot === 'function') mpClient.snapshot(buildSnapshot()); }
     else { game.endTurn(); maybeRunAI(); }
   });
 }
@@ -488,21 +489,8 @@ async function initMultiplayer() {
     showRoomBanner(roomId, player);
     const modeEl = document.getElementById('modeModal'); if (modeEl) modeEl.style.display = 'none';
   });
+  // Snapshot-only: just apply snapshots from poller
   mpClient.on('snapshot', (msg) => { applySnapshot(msg); });
-  mpClient.on('event', (msg) => {
-    if (msg.action) { try { console.log('Apply remote event', msg.action?.kind, 'by', msg.player, 'seq', msg.seq, 'cp', msg.currentPlayer); } catch {} }
-    if (msg.action) applyActionLocal(msg.action, msg.player, /*remote*/true);
-    if (typeof msg.currentPlayer === 'number') game.currentPlayer = msg.currentPlayer;
-    // If this was our own endTurn event echoed back, persist a snapshot after applying
-    try {
-      if (msg.action?.kind === 'endTurn' && typeof mpClient.snapshot === 'function' && typeof mpClient.player === 'number' && msg.player === mpClient.player) {
-        // Persist and broadcast full state after turn switch
-        if (typeof mpClient.sync === 'function') mpClient.sync(buildSnapshot()); else mpClient.snapshot(buildSnapshot());
-      }
-    } catch {}
-    try { window.__lastEvtSeq = typeof msg.seq === 'number' ? msg.seq : (window.__lastEvtSeq || null); } catch {}
-  });
-  mpClient.on('request_state', () => { mpClient.snapshot(buildSnapshot()); });
   if (typeof mpClient.on === 'function') {
     mpClient.on('error', (err) => { console.error('MP ERROR action', err?.status || '', err?.message || ''); });
   }
@@ -514,45 +502,28 @@ async function initMultiplayer() {
 
   // Set hooks for input to send actions
   const hooks = {
+    // Snapshot-only: apply locally, then persist+broadcast snapshot
     spawn: ({ kind, unitType, fortType, x, y }) => {
-      try { console.log('HOOK spawn intent', { kind, unitType, fortType, x, y, turn: game.turn, cp: game.currentPlayer, me: mpClient?.player }); } catch {}
-      if (game.currentPlayer !== mpClient.player) { try { console.log('HOOK spawn blocked (not your turn)'); } catch {} return; }
-      try { console.log('HOOK spawn', { kind, unitType, fortType, x, y }); } catch {}
+      if (game.currentPlayer !== mpClient.player) return;
       const spawnType = kind; // 'unit' or 'fort'
-      try { mpClient.action({ kind: 'spawn', spawnType, unitType, fortType, x, y }); if (typeof window !== 'undefined') window.__LAST_HOOK_SENT = true; } catch {}
-      // Apply locally
       if (spawnType === 'unit') { const ut = UNIT_TYPES[unitType]; game.queueSpawn(ut); game.trySpawnAt(x, y); }
       else { const ft = FORT_TYPES[fortType]; game.queueFort(ft); game.trySpawnAt(x, y); }
-      try { window.__lastLocalApplyTs = Date.now(); } catch {}
-      // Persist+broadcast snapshot so the other side can converge
-      try { if (typeof mpClient.sync === 'function') mpClient.sync(buildSnapshot()); else if (typeof mpClient.snapshot === 'function') mpClient.snapshot(buildSnapshot()); } catch {}
+      if (typeof mpClient.sync === 'function') mpClient.sync(buildSnapshot()); else if (typeof mpClient.snapshot === 'function') mpClient.snapshot(buildSnapshot());
     },
     buildFort: (fortType, engineerId, x, y) => {
-      try { console.log('HOOK buildFort intent', { fortType, engineerId, x, y, turn: game.turn, cp: game.currentPlayer, me: mpClient?.player }); } catch {}
-      if (game.currentPlayer !== mpClient.player) { try { console.log('HOOK buildFort blocked (not your turn)'); } catch {} return; }
-      try { console.log('HOOK buildFort', { fortType, engineerId, x, y }); } catch {}
-      try { mpClient.action({ kind: 'buildFort', fortType, engineerId, x, y }); if (typeof window !== 'undefined') window.__LAST_HOOK_SENT = true; } catch {}
+      if (game.currentPlayer !== mpClient.player) return;
       game.selectedId = engineerId; const ft = FORT_TYPES[fortType]; game.queueFortBuild(ft); game.tryBuildAt(x, y);
-      try { window.__lastLocalApplyTs = Date.now(); } catch {}
-      try { if (typeof mpClient.sync === 'function') mpClient.sync(buildSnapshot()); else if (typeof mpClient.snapshot === 'function') mpClient.snapshot(buildSnapshot()); } catch {}
+      if (typeof mpClient.sync === 'function') mpClient.sync(buildSnapshot()); else if (typeof mpClient.snapshot === 'function') mpClient.snapshot(buildSnapshot());
     },
     move: (unitId, x, y) => {
-      try { console.log('HOOK move intent', { unitId, x, y, turn: game.turn, cp: game.currentPlayer, me: mpClient?.player }); } catch {}
-      if (game.currentPlayer !== mpClient.player) { try { console.log('HOOK move blocked (not your turn)'); } catch {} return; }
-      try { console.log('HOOK move', { unitId, x, y }); } catch {}
-      try { mpClient.action({ kind: 'move', unitId, x, y }); if (typeof window !== 'undefined') window.__LAST_HOOK_SENT = true; } catch {}
+      if (game.currentPlayer !== mpClient.player) return;
       const u = game.getUnitById(unitId); if (u) { game.moveUnitTo(u, x, y); game.checkFlagCapture(u); }
-      try { window.__lastLocalApplyTs = Date.now(); } catch {}
-      try { if (typeof mpClient.sync === 'function') mpClient.sync(buildSnapshot()); else if (typeof mpClient.snapshot === 'function') mpClient.snapshot(buildSnapshot()); } catch {}
+      if (typeof mpClient.sync === 'function') mpClient.sync(buildSnapshot()); else if (typeof mpClient.snapshot === 'function') mpClient.snapshot(buildSnapshot());
     },
     attack: (attackerId, x, y) => {
-      try { console.log('HOOK attack intent', { attackerId, x, y, turn: game.turn, cp: game.currentPlayer, me: mpClient?.player }); } catch {}
-      if (game.currentPlayer !== mpClient.player) { try { console.log('HOOK attack blocked (not your turn)'); } catch {} return; }
-      try { console.log('HOOK attack', { attackerId, x, y }); } catch {}
-      try { mpClient.action({ kind: 'attack', attackerId, x, y }); if (typeof window !== 'undefined') window.__LAST_HOOK_SENT = true; } catch {}
+      if (game.currentPlayer !== mpClient.player) return;
       const a = game.getUnitById(attackerId); const enemy = game.getEnemyAt(x, y) || game.getFortAt(x, y); if (a && enemy) game.attack(a, enemy);
-      try { window.__lastLocalApplyTs = Date.now(); } catch {}
-      try { if (typeof mpClient.sync === 'function') mpClient.sync(buildSnapshot()); else if (typeof mpClient.snapshot === 'function') mpClient.snapshot(buildSnapshot()); } catch {}
+      if (typeof mpClient.sync === 'function') mpClient.sync(buildSnapshot()); else if (typeof mpClient.snapshot === 'function') mpClient.snapshot(buildSnapshot());
     },
   };
   // Reattach input with hooks
