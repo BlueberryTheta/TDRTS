@@ -134,17 +134,36 @@ window.addEventListener('resize', () => {
   setAccordionsOpenByViewport();
 });
 
-// MP Debug overlay toggle wiring
+// MP Debug overlay toggle wiring (ensure after DOMContentLoaded)
 function wireMpDebug() {
   try {
     const btn = document.getElementById('mpDebugToggle');
     const ov = document.getElementById('mpDebugOverlay');
     const close = document.getElementById('mpDebugClose');
-    if (btn && ov) btn.addEventListener('click', () => { ov.style.display = (ov.style.display === 'none' || !ov.style.display) ? 'block' : 'none'; });
-    if (close && ov) close.addEventListener('click', () => { ov.style.display = 'none'; });
+    if (btn && ov && !btn.__wired) {
+      btn.addEventListener('click', () => { ov.style.display = (ov.style.display === 'none' || !ov.style.display) ? 'block' : 'none'; });
+      btn.__wired = true;
+    }
+    if (close && ov && !close.__wired) { close.addEventListener('click', () => { ov.style.display = 'none'; }); close.__wired = true; }
+    // Keyboard shortcut: press "D" to toggle overlay
+    if (!window.__MP_DEBUG_KEY) {
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'd' || e.key === 'D') { try { const el = document.getElementById('mpDebugOverlay'); if (el) el.style.display = (el.style.display === 'none' || !el.style.display) ? 'block' : 'none'; } catch {} }
+      });
+      window.__MP_DEBUG_KEY = true;
+    }
+    // Auto-open if ?mpdebug=1
+    try {
+      const usp = new URLSearchParams(location.search);
+      if ((usp.get('mpdebug') === '1' || usp.get('debug') === '1') && ov) ov.style.display = 'block';
+    } catch {}
   } catch {}
 }
-wireMpDebug();
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', wireMpDebug, { once: true });
+} else {
+  wireMpDebug();
+}
 
 // --- Landing (mode selection) ---
 const modeModal = document.getElementById('modeModal');
