@@ -364,6 +364,7 @@ function buildSnapshot() {
     h: game.h,
     turn: game.turn,
     currentPlayer: game.currentPlayer,
+    rev: game.rev,
     income: game.income,
     money: game.money,
     bases: game.bases,
@@ -505,10 +506,7 @@ async function initMultiplayer() {
   });
   mpClient.on('request_state', () => { mpClient.snapshot(buildSnapshot()); });
   if (typeof mpClient.on === 'function') {
-    mpClient.on('error', (err) => {
-      console.error('[MP ERROR]', err?.type || 'unknown', err?.status || '', err?.message || '');
-      try { window.__lastMpError = err; } catch {}
-    });
+    mpClient.on('error', (err) => { console.error('MP ERROR action', err?.status || '', err?.message || ''); });
   }
   if (typeof mpClient.on === 'function') {
     mpClient.on('players', (n) => { window.mpPlayers = n; });

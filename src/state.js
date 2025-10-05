@@ -43,6 +43,7 @@ export class GameState {
     // Game over state
     this.isGameOver = false;
     this.winner = null; // 0 or 1
+    this.rev = 0; // revision for snapshots
   }
 
   nextId() { return this._unitId++; }
@@ -185,6 +186,7 @@ export class GameState {
       const unit = makeUnit(id, unitType, this.currentPlayer, x, y);
       this.units.push(unit);
       this.money[this.currentPlayer] -= unitType.cost;
+      this.rev++;
       if (DBG()) slog('spawned unit', { id, type: unitType.name, x, y, cp: this.currentPlayer, money: this.money[this.currentPlayer] });
     } else if (this.spawnQueue.kind === 'fort') {
       if (!this.canSpawnAt(x, y)) { if (DBG()) slog('trySpawnAt fort denied: canSpawnAt false'); return false; }
@@ -192,6 +194,7 @@ export class GameState {
       const fort = makeFort(id, fortType, this.currentPlayer, x, y);
       this.forts.push(fort);
       this.money[this.currentPlayer] -= fortType.cost;
+      this.rev++;
       if (DBG()) slog('spawned fort', { id, type: fortType.name, x, y, cp: this.currentPlayer, money: this.money[this.currentPlayer] });
     }
     this.spawnQueue = null;
@@ -236,6 +239,7 @@ export class GameState {
     this.money[this.currentPlayer] -= fortType.cost;
     if (eng) eng.acted = true;
     this.buildQueue = null;
+    this.rev++;
     if (DBG()) slog('built fort', { id, type: fortType.name, x, y, by: eng?.id, cp: this.currentPlayer, money: this.money[this.currentPlayer] });
     return true;
   }
@@ -271,6 +275,7 @@ export class GameState {
     this.selectedId = null;
     this.spawnQueue = null;
     this.buildQueue = null;
+    this.rev++;
     if (DBG()) slog('endTurn end', { turn: this.turn, currentPlayer: this.currentPlayer, money: this.money.slice ? this.money.slice() : this.money });
   }
 
@@ -434,7 +439,7 @@ export class GameState {
         dmg = Math.max(1, dmg - 2); // bunker cover reduces incoming damage by 2
       }
     }
-    target.hp -= dmg;
+    target.hp -= dmg; this.rev++;
     if (DBG()) slog('attack hit', { attacker: { id: attacker.id, type: attacker.type, p: attacker.player, x: attacker.x, y: attacker.y }, target: { id: target.id, type: target.type, p: target.player, x: target.x, y: target.y }, dmg, targetHp: target.hp });
     if (!target.fort) {
       try { target.hitUntil = (performance && performance.now ? performance.now() : Date.now()) + 200; } catch (_) { target.hitUntil = Date.now() + 200; }
@@ -461,11 +466,11 @@ export class GameState {
       // Remove dead unit or fort
       if (target.fort) {
         const fi = this.forts.findIndex(f => f.id === target.id);
-        if (fi >= 0) this.forts.splice(fi, 1);
+        if (fi >= 0) this.forts.splice(fi, 1); this.rev++;
         if (DBG()) slog('fort destroyed', { id: target.id, type: target.type, x: target.x, y: target.y });
       } else {
         const idx = this.units.findIndex(u => u.id === target.id);
-        if (idx >= 0) this.units.splice(idx, 1);
+        if (idx >= 0) this.units.splice(idx, 1); this.rev++;
         if (DBG()) slog('unit destroyed', { id: target.id, type: target.type, x: target.x, y: target.y });
       }
     } else {
@@ -480,7 +485,7 @@ export class GameState {
           counter += 2;
         }
         if (counter > 0) {
-          attacker.hp -= counter;
+          attacker.hp -= counter; this.rev++;
           if (DBG()) slog('counter hit', { attackerId: attacker.id, counter, attackerHp: attacker.hp });
           try { attacker.hitUntil = (performance && performance.now ? performance.now() : Date.now()) + 200; } catch (_) { attacker.hitUntil = Date.now() + 200; }
           // If attacker carried a flag, drop it on their tile before removal
@@ -490,7 +495,7 @@ export class GameState {
               this.dropFlagAt(attacker, attacker.x, attacker.y);
             }
             const ai = this.units.findIndex(u => u.id === attacker.id);
-            if (ai >= 0) this.units.splice(ai, 1);
+            if (ai >= 0) this.units.splice(ai, 1); this.rev++;
             if (DBG()) slog('attacker destroyed by counter', { id: attacker.id });
           }
         }
