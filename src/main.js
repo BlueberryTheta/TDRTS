@@ -98,7 +98,7 @@ const MISC_ASSETS = {
   OrangeFlag: 'assets/Orange Flag.png',
 };
 
-assets.load({ ...UNIT_TO_FILE, ...FORT_TO_FILE, ...MISC_ASSETS });
+assets.load({ ...UNIT_TO_FILE, ...FORT_TO_FILE, ...MISC_ASSETS });\n// --- MP Game Log ---\nconst __LOG = [];\nfunction logAction(action, byPlayer){\n  try {\n    const p = (typeof byPlayer === 'number') ? byPlayer : (mpClient && typeof mpClient.player==='number' ? mpClient.player : 0);\n    const who = p===0 ? 'P1' : 'P2';\n    let msg = '';\n    switch(action?.kind){\n      case 'spawn': { if(action.spawnType==='unit') msg = ${who} spawned  @ ,; else msg = ${who} placed  @ ,; break; }\n      case 'buildFort': msg = ${who} built  @ ,; break;\n      case 'move': msg = ${who} moved unit# -> ,; break;\n      case 'attack': msg = ${who} attacked @ ,; break;\n      case 'endTurn': msg = ${who} ended turn; break;\n      default: msg = action?.kind ? ${who}  : ${who} action;\n    }\n    __LOG.push({ t: Date.now(), p, msg });\n    if (__LOG.length > 200) __LOG.shift();\n    const list = document.getElementById('mpLogList');\n    if (list){\n      const div = document.createElement('div');\n      div.className = 'item ' + (p===0 ? 'p1' : 'p2');\n      const tm = new Date().toLocaleTimeString([], { hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit' });\n      div.textContent = []  + msg;\n      list.appendChild(div);\n      list.scrollTop = list.scrollHeight;\n    }\n  } catch {}\n}\n
 
 // Decorate shop buttons with thumbnails
 function decorateShop() {
@@ -215,6 +215,14 @@ function updateUI() {
     shopBtns.forEach(b => b.disabled = !myTurn);
     if (ui.endTurn) ui.endTurn.disabled = !myTurn;
     if (ui.endTurnTop) ui.endTurnTop.disabled = !myTurn;
+    // Opponent status pill
+    const opp = document.getElementById('opponentStatus');
+    if (opp) {
+      const joined = (window.mpPlayers || 0) >= 2;
+      opp.textContent = joined ? 'Connected' : 'Waiting';
+      opp.classList.remove('connected','waiting');
+      opp.classList.add(joined ? 'connected' : 'waiting');
+    }
   }
   // Selected unit panel
   const info = document.getElementById('unitInfo');
@@ -550,6 +558,8 @@ async function initMultiplayer() {
       const { player, action, currentPlayer } = msg || {};
       if (action) {
         applyActionLocal(action, typeof player === 'number' ? player : -1, true);
+        // Log the action
+        try { logAction(action, player); } catch {}
       }
       if (typeof currentPlayer === 'number') {
         game.currentPlayer = currentPlayer;
@@ -599,11 +609,13 @@ async function initMultiplayer() {
         if (created && created.id && created.player === mpClient.player) {
           game.selectedId = created.id;
         }
+        try { logAction({ kind: 'spawn', spawnType:'unit', unitType, x, y }, mpClient.player); } catch {}
       } else {
         const ft = FORT_TYPES[fortType];
         game.queueFort(ft);
         const created = game.trySpawnAt(x, y);
         // Do not auto-select forts
+        try { logAction({ kind: 'spawn', spawnType:'fort', fortType, x, y }, mpClient.player); } catch {}
       }
       // Persist snapshot: HTTP always, WS only by host
       if (typeof mpClient.sync === 'function') {
@@ -618,6 +630,7 @@ async function initMultiplayer() {
       const eng = game.getUnitById(engineerId);
       if (!eng || eng.player !== mpClient.player) return; // enforce ownership
       game.selectedId = engineerId; const ft = FORT_TYPES[fortType]; game.queueFortBuild(ft); game.tryBuildAt(x, y);
+      try { logAction({ kind:'buildFort', fortType, engineerId, x, y }, mpClient.player); } catch {}
       if (typeof mpClient.sync === 'function') { mpClient.sync(buildSnapshot()); }
       else if (typeof mpClient.snapshot === 'function') { if (typeof mpClient.player === 'number' && mpClient.player === 0) mpClient.snapshot(buildSnapshot()); }
     },
@@ -626,6 +639,7 @@ async function initMultiplayer() {
       game.currentPlayer = mpClient.player;
       const u = game.getUnitById(unitId); if (!u || u.player !== mpClient.player) return; // enforce ownership
       game.moveUnitTo(u, x, y); game.checkFlagCapture(u);
+      try { logAction({ kind:'move', unitId, x, y }, mpClient.player); } catch {}
       if (typeof mpClient.sync === 'function') { mpClient.sync(buildSnapshot()); }
       else if (typeof mpClient.snapshot === 'function') { if (typeof mpClient.player === 'number' && mpClient.player === 0) mpClient.snapshot(buildSnapshot()); }
     },
@@ -634,6 +648,7 @@ async function initMultiplayer() {
       game.currentPlayer = mpClient.player;
       const a = game.getUnitById(attackerId); if (!a || a.player !== mpClient.player) return; // enforce ownership
       const enemy = game.getEnemyAt(x, y) || game.getFortAt(x, y); if (enemy) game.attack(a, enemy);
+      try { logAction({ kind:'attack', attackerId, x, y }, mpClient.player); } catch {}
       if (typeof mpClient.sync === 'function') { mpClient.sync(buildSnapshot()); }
       else if (typeof mpClient.snapshot === 'function') { if (typeof mpClient.player === 'number' && mpClient.player === 0) mpClient.snapshot(buildSnapshot()); }
     },
@@ -681,4 +696,5 @@ function wireMpControls() {
   };
   if (copyBtnModal) copyBtnModal.onclick = () => { if (window.currentRoomId) navigator.clipboard?.writeText(buildInviteLink(window.currentRoomId)); };
 }
+
 

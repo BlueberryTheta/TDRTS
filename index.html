@@ -22,12 +22,18 @@
           <span id="roomCode" class="hud-pill">-</span>
           <span class="hud-label" style="margin-left:10px">You</span>
           <span id="playerLabel" class="hud-pill">P1</span>
+          <span class="hud-label" style="margin-left:10px">Opponent</span>
+          <span id="opponentStatus" class="hud-pill">Waiting</span>
         </div>
         <div class="hud-spacer"></div>
         <button id="copyLinkBtn" class="hud-button" title="Copy invite link">Copy Link</button>
       </div>
       <div id="left">
         <canvas id="gameCanvas" width="640" height="640"></canvas>
+        <details id="mpLogPanel" class="panel accordion" style="margin-top:8px">
+          <summary>Game Log</summary>
+          <div id="mpLogList" class="log-list"></div>
+        </details>
       </div>
       <div id="right">
         <div id="status">

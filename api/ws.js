@@ -58,6 +58,7 @@ export default async function handler(req) {
       player = 0;
       console.log('[WS] create room', roomId, 'player', player);
       ws.send(JSON.stringify({ type: 'room', roomId, player }));
+      broadcast(room, { type: 'players', players: room.players.size });
       // Ask host to provide initial snapshot
       ws.send(JSON.stringify({ type: 'request_state' }));
     } else if (msg.type === 'join') {
@@ -74,6 +75,7 @@ export default async function handler(req) {
       } else if (room.host) {
         try { room.host.send(JSON.stringify({ type: 'request_state' })); } catch {}
       }
+      broadcast(room, { type: 'players', players: room.players.size });
     } else if (msg.type === 'request_state') {
       console.log('[WS] request_state', roomId);
       // Clients should respond by sending a snapshot; server does not hold logic
@@ -93,6 +95,7 @@ export default async function handler(req) {
     if (!roomId) return;
     const room = rooms.get(roomId); if (!room) return;
     room.sockets.delete(ws); room.players.delete(ws);
+    broadcast(room, { type: 'players', players: room.players.size });
     if (room.sockets.size === 0) rooms.delete(roomId);
   });
 

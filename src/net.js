@@ -118,11 +118,21 @@ export class HttpMPClient {
   async startPolling(){ if(this.polling) return; this.polling = true; this.dlog('polling start');
     const loop = async () => {
       try {
-        // Snapshot-only: force snapshot include each poll
-        const url = `/api/mp/poll?room=${encodeURIComponent(this.roomId)}&since=0`;
+        // Poll for new events since last seq and include latest snapshot
+        const url = `/api/mp/poll?room=${encodeURIComponent(this.roomId)}&since=${encodeURIComponent(this.seq)}`;
         const res = await fetch(url, { headers:{ 'Cache-Control':'no-cache' } });
         const data = await res.json();
         if (data.snapshot) this.emit('snapshot', { type:'snapshot', state: data.snapshot });
+        if (Array.isArray(data.events)) {
+          for (const ev of data.events) {
+            if (typeof ev.seq === 'number' && ev.seq > this.seq) {
+              this.seq = ev.seq;
+              // Normalize to WS-like shape
+              if (ev.type === 'event') this.emit('event', ev);
+            }
+          }
+        }
+        if (typeof data.lastSeq === 'number' && data.lastSeq > this.seq) this.seq = data.lastSeq;
         if (typeof data.players === 'number') this.emit('players', data.players);
       } catch(e) { this.dlog('poll error', e); }
       if (this.polling) setTimeout(loop, 300);
