@@ -54,6 +54,7 @@ export class MultiplayerClient {
 
   createRoom() { if (this.debug) console.log('[MP] createRoom'); this.send({ type: 'create' }); }
   joinRoom(roomId) { if (this.debug) console.log('[MP] joinRoom', roomId); this.send({ type: 'join', roomId }); }
+  rejoinRoom(roomId, as) { if (this.debug) console.log('[MP] rejoinRoom', roomId, 'as', as); this.send({ type: 'rejoin', roomId, as }); }
   requestState() { if (this.debug) console.log('[MP] request_state'); this.send({ type: 'request_state' }); }
   action(msg) { if (this.debug) console.log('[MP] action', msg); this.send({ type: 'action', ...msg }); }
   snapshot(state) { if (this.debug) console.log('[MP] snapshot'); this.send({ type: 'snapshot', state }); }
@@ -76,6 +77,13 @@ export class HttpMPClient {
   }
   async joinRoom(roomId){
     const res = await fetch('/api/mp/room', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'join', roomId }) });
+    const data = await res.json(); if(data.error) throw new Error(data.message || data.error);
+    this.roomId = data.roomId; this.player = data.player; this.emit('room', { roomId: this.roomId, player: this.player, players: data.players, using: data.using });
+    if (data.snapshot) this.emit('snapshot', { type:'snapshot', state: data.snapshot });
+    this.startPolling();
+  }
+  async rejoinRoom(roomId, player){
+    const res = await fetch('/api/mp/room', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'rejoin', roomId, player }) });
     const data = await res.json(); if(data.error) throw new Error(data.message || data.error);
     this.roomId = data.roomId; this.player = data.player; this.emit('room', { roomId: this.roomId, player: this.player, players: data.players, using: data.using });
     if (data.snapshot) this.emit('snapshot', { type:'snapshot', state: data.snapshot });

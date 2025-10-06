@@ -76,6 +76,18 @@ export default async function handler(req) {
         try { room.host.send(JSON.stringify({ type: 'request_state' })); } catch {}
       }
       broadcast(room, { type: 'players', players: room.players.size });
+    } else if (msg.type === 'rejoin') {
+      const room = rooms.get(msg.roomId);
+      if (!room) { ws.send(JSON.stringify({ type: 'error', message: 'Room not found' })); return; }
+      const desired = (msg.as === 0 || msg.as === 1) ? msg.as : 1;
+      const taken = new Set([...room.players.values()]);
+      if (taken.has(desired)) { ws.send(JSON.stringify({ type: 'error', message: 'Seat taken' })); return; }
+      roomId = msg.roomId; player = desired; room.sockets.add(ws); room.players.set(ws, desired);
+      if (desired === 0) room.host = ws;
+      console.log('[WS] rejoin room', roomId, 'as', player);
+      ws.send(JSON.stringify({ type: 'room', roomId, player }));
+      if (room.lastSnapshot) ws.send(JSON.stringify({ type: 'snapshot', state: room.lastSnapshot }));
+      broadcast(room, { type: 'players', players: room.players.size });
     } else if (msg.type === 'request_state') {
       console.log('[WS] request_state', roomId);
       // Clients should respond by sending a snapshot; server does not hold logic

@@ -1,6 +1,6 @@
 export const config = { runtime: 'edge' };
 export const runtime = 'edge';
-import { createRoom, joinRoom, getSnapshot, getCurrentPlayer, getPlayers, setPlayers } from './store.js';
+import { createRoom, joinRoom, getSnapshot, getCurrentPlayer, getPlayers, setPlayers, getOrCreateRoom } from './store.js';
 import { hasNeon } from './db.js';
 
 function json(data, status = 200) {
@@ -34,6 +34,17 @@ export default async function handler(req) {
       const { room, player } = res;
       const players = await getPlayers(room.id);
       try { console.log('[MP/ROOM] joined', room.id, 'assigned=', player, 'players=', players); } catch {}
+      return json({ roomId: room.id, player, players, snapshot: await getSnapshot(room.id), currentPlayer: await getCurrentPlayer(room.id), using: hasNeon() ? 'neon' : 'memory' });
+    }
+    if (body.action === 'rejoin') {
+      let { roomId, player } = body;
+      roomId = (roomId || '').toString().trim().toUpperCase();
+      if (typeof player !== 'number' || (player !== 0 && player !== 1)) return json({ error: 'Bad Request' }, 400);
+      const room = await getOrCreateRoom(roomId).catch(() => null);
+      if (!room) return json({ error: 'Invalid code' }, 400);
+      const players = await getPlayers(room.id);
+      try { console.log('[MP/ROOM] rejoin', room.id, 'as', player, 'players=', players); } catch {}
+      // Do not change players count; just return current state and requested seat
       return json({ roomId: room.id, player, players, snapshot: await getSnapshot(room.id), currentPlayer: await getCurrentPlayer(room.id), using: hasNeon() ? 'neon' : 'memory' });
     }
     return json({ error: 'Bad Request' }, 400);

@@ -566,6 +566,7 @@ async function initMultiplayer() {
     dlog('Room joined', { roomId, player, players });
     window.mpPlayers = typeof players === 'number' ? players : window.mpPlayers;
     window.currentRoomId = roomId;
+    try { localStorage.setItem('REJOIN_' + roomId, String(player)); } catch {}
     try { window.MY_PLAYER = player; } catch {}
     // Show shareable URL
     if (info) {
@@ -595,6 +596,19 @@ async function initMultiplayer() {
         applyActionLocal(action, typeof player === 'number' ? player : -1, true);
         // Log the action
         try { logAction(action, player); } catch {}
+        // Opponent activity pulse
+        try {
+          const opp = document.getElementById('opponentStatus');
+          if (opp && typeof mpClient.player === 'number' && player !== mpClient.player) {
+            opp.textContent = 'Active';
+            opp.classList.remove('waiting'); opp.classList.add('connected');
+            clearTimeout(window.__OPP_ACTIVE_TIMER);
+            window.__OPP_ACTIVE_TIMER = setTimeout(() => {
+              const joined = (window.mpPlayers || 0) >= 2;
+              opp.textContent = joined ? 'Connected' : 'Waiting';
+            }, 2500);
+          }
+        } catch {}
       }
       if (typeof currentPlayer === 'number') {
         game.currentPlayer = currentPlayer;
@@ -627,7 +641,11 @@ async function initMultiplayer() {
     mpClient.on('players', (n) => { window.mpPlayers = n; });
   }
 
-  if (roomFromUrl) mpClient.joinRoom(roomFromUrl); else wireMpControls();
+  if (roomFromUrl) {
+    let rejoinAs = null; try { const saved = localStorage.getItem('REJOIN_' + roomFromUrl); if (saved === '0' || saved === '1') rejoinAs = Number(saved); } catch {}
+    if (rejoinAs !== null && typeof mpClient.rejoinRoom === 'function') mpClient.rejoinRoom(roomFromUrl, rejoinAs);
+    else mpClient.joinRoom(roomFromUrl);
+  } else wireMpControls();
 
   // Set hooks for input to send actions
   const hooks = {
