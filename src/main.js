@@ -97,9 +97,44 @@ const MISC_ASSETS = {
   BlueFlag: 'assets/Blue Flag.png',
   OrangeFlag: 'assets/Orange Flag.png',
 };
-
+/*
 assets.load({ ...UNIT_TO_FILE, ...FORT_TO_FILE, ...MISC_ASSETS });\n// --- MP Game Log ---\nconst __LOG = [];\nfunction logAction(action, byPlayer){\n  try {\n    const p = (typeof byPlayer === 'number') ? byPlayer : (mpClient && typeof mpClient.player==='number' ? mpClient.player : 0);\n    const who = p===0 ? 'P1' : 'P2';\n    let msg = '';\n    switch(action?.kind){\n      case 'spawn': { if(action.spawnType==='unit') msg = ${who} spawned  @ ,; else msg = ${who} placed  @ ,; break; }\n      case 'buildFort': msg = ${who} built  @ ,; break;\n      case 'move': msg = ${who} moved unit# -> ,; break;\n      case 'attack': msg = ${who} attacked @ ,; break;\n      case 'endTurn': msg = ${who} ended turn; break;\n      default: msg = action?.kind ? ${who}  : ${who} action;\n    }\n    __LOG.push({ t: Date.now(), p, msg });\n    if (__LOG.length > 200) __LOG.shift();\n    const list = document.getElementById('mpLogList');\n    if (list){\n      const div = document.createElement('div');\n      div.className = 'item ' + (p===0 ? 'p1' : 'p2');\n      const tm = new Date().toLocaleTimeString([], { hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit' });\n      div.textContent = []  + msg;\n      list.appendChild(div);\n      list.scrollTop = list.scrollHeight;\n    }\n  } catch {}\n}\n
+*/
 
+assets.load({ ...UNIT_TO_FILE, ...FORT_TO_FILE, ...MISC_ASSETS });
+
+// --- MP Game Log ---
+const __LOG = [];
+function logAction(action, byPlayer) {
+  try {
+    const p = (typeof byPlayer === 'number') ? byPlayer : (mpClient && typeof mpClient.player === 'number' ? mpClient.player : 0);
+    const who = p === 0 ? 'P1' : 'P2';
+    let msg = '';
+    switch (action && action.kind) {
+      case 'spawn': {
+        if (action.spawnType === 'unit') msg = `${who} spawned ${action.unitType} @ ${action.x},${action.y}`;
+        else msg = `${who} placed ${action.fortType} @ ${action.x},${action.y}`;
+        break;
+      }
+      case 'buildFort': msg = `${who} built ${action.fortType} @ ${action.x},${action.y}`; break;
+      case 'move': msg = `${who} moved unit#${action.unitId} -> ${action.x},${action.y}`; break;
+      case 'attack': msg = `${who} attacked @ ${action.x},${action.y}`; break;
+      case 'endTurn': msg = `${who} ended turn`; break;
+      default: msg = (action && action.kind) ? `${who} ${action.kind}` : `${who} action`;
+    }
+    __LOG.push({ t: Date.now(), p, msg });
+    if (__LOG.length > 200) __LOG.shift();
+    const list = document.getElementById('mpLogList');
+    if (list) {
+      const div = document.createElement('div');
+      div.className = 'item ' + (p === 0 ? 'p1' : 'p2');
+      const tm = new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      div.textContent = `[${tm}] ` + msg;
+      list.appendChild(div);
+      list.scrollTop = list.scrollHeight;
+    }
+  } catch {}
+}
 // Decorate shop buttons with thumbnails
 function decorateShop() {
   const map = { ...UNIT_TO_FILE, ...FORT_TO_FILE };

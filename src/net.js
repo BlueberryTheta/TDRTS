@@ -30,6 +30,8 @@ export class MultiplayerClient {
             this.emit('snapshot', msg);
           } else if (msg.type === 'event') {
             this.emit('event', msg);
+          } else if (msg.type === 'players') {
+            this.emit('players', msg.players);
           } else if (msg.type === 'request_state') {
             this.emit('request_state', msg);
           } else if (msg.type === 'error') {
