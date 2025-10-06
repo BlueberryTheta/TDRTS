@@ -197,7 +197,6 @@ function wireMpDebug() {
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', wireMpDebug, { once: true });
 } else {
-  wireMpDebug();
 }
 
 // --- Landing (mode selection) ---
