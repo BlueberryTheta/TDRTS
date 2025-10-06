@@ -203,7 +203,7 @@ if (document.readyState === 'loading') {
 const modeModal = document.getElementById('modeModal');
 const playVsAiBtn = document.getElementById('playVsAi');
 const playOnlineBtn = document.getElementById('playOnline');
-function setMode(m) { try { window.__SETMODE = setMode; } catch {}
+function setMode(m) {
   MODE = m;
   dlog('Mode set to', MODE);
   if (MODE === 'ai') {
@@ -218,6 +218,7 @@ function setMode(m) { try { window.__SETMODE = setMode; } catch {}
     initMultiplayer().catch(err => console.error('MP init failed', err));
   }
 }
+try { window.__SETMODE = setMode; } catch {}
 if (!MODE) {
   if (modeModal) modeModal.style.display = 'flex';
 } else if (modeModal) {
@@ -744,6 +745,8 @@ function wireMpControls() {
   };
   if (copyBtnModal) copyBtnModal.onclick = () => { if (window.currentRoomId) navigator.clipboard?.writeText(buildInviteLink(window.currentRoomId)); };
 }
+
+
 
 
 
