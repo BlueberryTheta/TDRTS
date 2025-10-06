@@ -508,7 +508,7 @@ function showRoomBanner(roomId, player) {
   if (banner) banner.style.display = '';
   if (codeEl) codeEl.textContent = roomId;
   if (playerEl) playerEl.textContent = player === 0 ? 'P1' : 'P2';
-  if (copyBtn) copyBtn.onclick = () => navigator.clipboard?.writeText(buildInviteLink(roomId));
+  if (copyBtn) copyBtn.onclick = () => navigator.clipboard?.writeText(buildInviteLink(roomId)); const menuBtn = document.getElementById('mpMenuBtn'); if (menuBtn) menuBtn.onclick = () => { const mm = document.getElementById('mpMenuModal'); if (mm) mm.style.display = 'flex'; };
 }
 
 async function initMultiplayer() {
@@ -745,6 +745,8 @@ function wireMpControls() {
   };
   if (copyBtnModal) copyBtnModal.onclick = () => { if (window.currentRoomId) navigator.clipboard?.writeText(buildInviteLink(window.currentRoomId)); };
 }
+
+
 
 
 

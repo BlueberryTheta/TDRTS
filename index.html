@@ -26,6 +26,7 @@
           <span id="opponentStatus" class="hud-pill">Waiting</span>
         </div>
         <div class="hud-spacer"></div>
+        <button id="mpMenuBtn" class="hud-button" title="Game menu">Menu</button>
         <button id="copyLinkBtn" class="hud-button" title="Copy invite link">Copy Link</button>
       </div>
       <div id="left">
@@ -108,6 +109,18 @@
             <li>Capture the enemy flag by moving onto it, then bring it back to your base.</li>
           </ul>
         </details>
+      </div>
+    </div>
+    <!-- MP In-Game Menu Modal -->
+    <div id="mpMenuModal" class="modal" style="display:none" role="dialog" aria-modal="true" aria-labelledby="mpMenuTitle">
+      <div class="modal-content panel">
+        <h2 id="mpMenuTitle" style="margin-top:0">Game Menu</h2>
+        <p class="hint">Multiplayer options</p>
+        <div style="display:flex; gap:10px; justify-content:center; margin-top:8px; flex-wrap:wrap">
+          <button id="mpLeaveBtn" class="hud-button">Leave Room</button>
+          <button id="mpMainBtn" class="hud-button">Main Menu</button>
+          <button id="mpMenuCancelBtn" class="hud-button">Cancel</button>
+        </div>
       </div>
     </div>
     <!-- Game Over Modal -->
