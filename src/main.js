@@ -203,7 +203,7 @@ if (document.readyState === 'loading') {
 const modeModal = document.getElementById('modeModal');
 const playVsAiBtn = document.getElementById('playVsAi');
 const playOnlineBtn = document.getElementById('playOnline');
-function setMode(m) {
+function setMode(m) { try { window.__SETMODE = setMode; } catch {}
   MODE = m;
   dlog('Mode set to', MODE);
   if (MODE === 'ai') {
@@ -744,6 +744,8 @@ function wireMpControls() {
   };
   if (copyBtnModal) copyBtnModal.onclick = () => { if (window.currentRoomId) navigator.clipboard?.writeText(buildInviteLink(window.currentRoomId)); };
 }
+
+
 
 
 
