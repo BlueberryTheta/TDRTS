@@ -139,8 +139,8 @@
         <h2 id="modeTitle" style="margin-top:0">Select Mode</h2>
         <p class="hint">Choose how you want to play.</p>
         <div style="display:flex; gap:10px; justify-content:center; margin-top:8px">
-          <button id="playVsAi" class="hud-button" onclick="window.__SETMODE && window.__SETMODE('ai')">Play vs Computer</button>
-          <button id="playOnline" class="hud-button" onclick="window.__SETMODE && window.__SETMODE('mp')">Play Online (Friend)</button>
+          <button id="playVsAi" class="hud-button" onclick="(window.__SETMODE ? window.__SETMODE('ai') : (location.search='?mode=ai'))">Play vs Computer</button>
+          <button id="playOnline" class="hud-button" onclick="(window.__SETMODE ? window.__SETMODE('mp') : (location.search='?mode=mp'))">Play Online (Friend)</button>
         </div>
         <div id="mpControls" style="display:none; margin-top:12px">
           <div class="mp-grid">
@@ -176,4 +176,5 @@
     <script type="module" src="src/main.js"></script>
   </body>
   </html>
+
 
