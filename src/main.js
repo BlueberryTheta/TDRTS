@@ -57,7 +57,7 @@ loadBackgroundSequential([
 ], 'assets/map.svg');
 
 // Determine mode (ai or mp) via URL or landing modal
-let MODE = (new URLSearchParams(location.search)).get('mode'); try { if (!MODE) { const lr = localStorage.getItem('LAST_ROOM'); if (lr) MODE = 'mp'; } } catch {}
+let MODE = (new URLSearchParams(location.search)).get('mode');
 const DEBUG = (() => { try { return (window.DEBUG === true) || (new URLSearchParams(location.search).get('debug') === '1'); } catch { return false; } })();
 function dlog(...args) { if (DEBUG) console.log('[APP]', ...args); }
 // Debug helper to inspect units in console
