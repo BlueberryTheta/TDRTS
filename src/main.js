@@ -57,7 +57,7 @@ loadBackgroundSequential([
 ], 'assets/map.svg');
 
 // Determine mode (ai or mp) via URL or landing modal
-let MODE = (new URLSearchParams(location.search)).get('mode');
+let MODE = (new URLSearchParams(location.search)).get('mode'); try { if (!MODE) { const lr = localStorage.getItem('LAST_ROOM'); if (lr) MODE = 'mp'; } } catch {}
 const DEBUG = (() => { try { return (window.DEBUG === true) || (new URLSearchParams(location.search).get('debug') === '1'); } catch { return false; } })();
 function dlog(...args) { if (DEBUG) console.log('[APP]', ...args); }
 // Debug helper to inspect units in console
@@ -565,7 +565,7 @@ async function initMultiplayer() {
   mpClient.on('room', ({ roomId, player, players }) => {
     dlog('Room joined', { roomId, player, players });
     window.mpPlayers = typeof players === 'number' ? players : window.mpPlayers;
-    window.currentRoomId = roomId;
+    window.currentRoomId = roomId; try { localStorage.setItem('LAST_ROOM', roomId); localStorage.setItem('LAST_SEAT', String(player)); localStorage.setItem('REJOIN_' + roomId, String(player)); } catch {}
     try { localStorage.setItem('REJOIN_' + roomId, String(player)); } catch {}
     try { window.MY_PLAYER = player; } catch {}
     // Show shareable URL
@@ -641,11 +641,7 @@ async function initMultiplayer() {
     mpClient.on('players', (n) => { window.mpPlayers = n; });
   }
 
-  if (roomFromUrl) {
-    let rejoinAs = null; try { const saved = localStorage.getItem('REJOIN_' + roomFromUrl); if (saved === '0' || saved === '1') rejoinAs = Number(saved); } catch {}
-    if (rejoinAs !== null && typeof mpClient.rejoinRoom === 'function') mpClient.rejoinRoom(roomFromUrl, rejoinAs);
-    else mpClient.joinRoom(roomFromUrl);
-  } else wireMpControls();
+  if (roomFromUrl) { let rejoinAs = null; try { const saved = localStorage.getItem('REJOIN_' + roomFromUrl); if (saved === '0' || saved === '1') rejoinAs = Number(saved); } catch {} if (rejoinAs !== null && typeof mpClient.rejoinRoom === 'function') mpClient.rejoinRoom(roomFromUrl, rejoinAs); else mpClient.joinRoom(roomFromUrl); } else { let lastRoom = null; let lastSeat = null; try { lastRoom = localStorage.getItem('LAST_ROOM'); const s = localStorage.getItem('LAST_SEAT'); if (s === '0' || s === '1') lastSeat = Number(s); } catch {} if (lastRoom) { if (lastSeat !== null && typeof mpClient.rejoinRoom === 'function') mpClient.rejoinRoom(lastRoom, lastSeat); else mpClient.joinRoom(lastRoom); } else wireMpControls(); }
 
   // Set hooks for input to send actions
   const hooks = {
@@ -749,5 +745,7 @@ function wireMpControls() {
   };
   if (copyBtnModal) copyBtnModal.onclick = () => { if (window.currentRoomId) navigator.clipboard?.writeText(buildInviteLink(window.currentRoomId)); };
 }
+
+
 
 
