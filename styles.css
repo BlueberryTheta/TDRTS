@@ -108,7 +108,7 @@ li { margin: 4px 0; }
 .input { background: #0f1419; color: var(--text); border: 1px solid #30363d; border-radius: 6px; padding: 6px 8px; min-width: 140px; }
 .mode-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
 .mode-actions .hud-button { min-width: 180px; text-align: center; }
-.mode-logo { display: flex; justify-content: center; align-items: center; margin: 6px 0 2px; }
+.mode-logo { display: flex; justify-content: center; align-items: center; margin: 4px 0 8px; }
 .mode-logo img { max-width: 200px; width: 40%; height: auto; filter: drop-shadow(0 6px 12px rgba(0,0,0,0.35)); }
 
 /* Center content inside the main menu modal */
