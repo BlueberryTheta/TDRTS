@@ -151,9 +151,12 @@ details.accordion[open] > summary::after { content: '▾'; }
 }
 
 /* Tutorial overlay */
-.tutorial-overlay { position: fixed; inset: 0; pointer-events: none; display: flex; align-items: flex-start; justify-content: center; padding-top: 12px; z-index: 1003; }
-.tutorial-content { pointer-events: auto; max-width: 720px; width: calc(100% - 24px); }
-.tutorial-content .hint { color: var(--text); }
+.tutorial-overlay { position: fixed; inset: 0; pointer-events: none; display: flex; align-items: flex-start; justify-content: center; padding: 12px; z-index: 1003; }
+.tutorial-content { pointer-events: auto; max-width: 760px; width: 100%; max-height: 80vh; overflow: auto; }
+.tutorial-body { color: var(--text); font-size: 14px; line-height: 1.5; text-align: left; }
+.tutorial-body h3 { margin: 8px 0 4px; font-size: 15px; color: var(--accent-khaki); }
+.tutorial-body ul { margin: 6px 0 6px 18px; }
+.tutorial-body li { margin: 4px 0; }
 
 /* Modal overlay */
 .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; z-index: 999; }

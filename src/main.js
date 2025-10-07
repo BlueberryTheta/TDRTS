@@ -349,6 +349,11 @@ const playVsAiBtn = document.getElementById('playVsAi');
 const playOnlineBtn = document.getElementById('playOnline');
 const modeActions = document.querySelector('.mode-actions');
 const modeBackBtn = document.getElementById('modeBackBtn');
+// Tutorial elements
+const playTutorialBtn = document.getElementById('playTutorial');
+const tutorialOverlay = document.getElementById('tutorialOverlay');
+const tutorialText = document.getElementById('tutorialText');
+const tutorialBackBtn = document.getElementById('tutorialBackBtn');
 const aiControls = document.getElementById('aiControls');
 let __AI_DIFF = 'medium';
 try {
@@ -378,6 +383,9 @@ function setMode(m) {
     if (modeBackBtn) modeBackBtn.style.display = '';
     // Initialize multiplayer client (will wire the controls)
     initMultiplayer().catch(err => console.error('MP init failed', err));
+  } else if (MODE === 'tutorial') {
+    if (modeModal) modeModal.style.display = 'none';
+    showTutorial();
   }
   try { console.log('[UI] setMode end', m); } catch {}
 }
@@ -402,6 +410,13 @@ if (playOnlineBtn) {
     e.preventDefault();
     const ctrls = document.getElementById('mpControls'); if (ctrls) ctrls.style.display='block';
     setMode('mp');
+  });
+}
+if (typeof playTutorialBtn !== 'undefined' && playTutorialBtn) {
+  playTutorialBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    try { console.log('[CLICK] Tutorial'); } catch {}
+    setMode('tutorial');
   });
 }
 // Back button to return to mode selection root
@@ -445,6 +460,65 @@ try {
     try { console.error('[ERR]', ev?.message || ev); } catch {}
   });
 } catch {}
+
+// --- Tutorial static instructions ---
+function showTutorial() {
+  if (!tutorialOverlay || !tutorialText) return;
+  tutorialText.innerHTML = buildTutorialContentHtml();
+  tutorialOverlay.style.display = 'flex';
+}
+function hideTutorial() { if (tutorialOverlay) tutorialOverlay.style.display = 'none'; }
+if (tutorialBackBtn) {
+  tutorialBackBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    hideTutorial();
+    if (modeModal) modeModal.style.display = 'flex';
+    if (modeActions) modeActions.style.display = 'flex';
+    if (aiControls) aiControls.style.display = 'none';
+    if (modeBackBtn) modeBackBtn.style.display = 'none';
+    MODE = null;
+  });
+}
+
+function buildTutorialContentHtml() {
+  const lines = [];
+  lines.push('<h3>Objective</h3>');
+  lines.push('<p>Capture the enemy flag from their base and bring it back to your base. The game is turn-based: Player 1 goes first.</p>');
+  lines.push('<h3>Turn Flow</h3>');
+  lines.push('<ul><li>At the start of your turn, you gain $10 plus +$5 per Supply Depot you own.</li><li>Buy and place units/forts near your base (highlighted tiles).</li><li>Move and attack with your units. Each unit can move and attack once per turn (artillery cannot attack adjacent).</li><li>End your turn. Forts like Pillboxes may auto-fire.</li></ul>');
+  lines.push('<h3>Fog of War</h3>');
+  lines.push('<p>You only see tiles within friendly sight. Scouts extend vision and allow Artillery to fire beyond its base range at spotted tiles.</p>');
+  lines.push('<h3>Units</h3>');
+  lines.push(buildUnitsTableHtml());
+  lines.push('<h3>Fortifications</h3>');
+  lines.push(buildFortsTableHtml());
+  lines.push('<h3>Tips</h3>');
+  lines.push('<ul><li>Use Scouts to spot for Artillery and to reveal hidden enemies.</li><li>Officers add a leadership aura; Medics heal adjacent friendlies at end of turn.</li><li>Engineers can build Bunkers, Pillboxes, Barbed Wire, and Supply Depots.</li><li>Bunkers allow stacking and provide cover; Pillboxes threaten nearby enemies automatically.</li></ul>');
+  return lines.join('');
+}
+
+function buildUnitsTableHtml() {
+  const keys = Object.keys(UNIT_TYPES);
+  const rows = keys.map(k => {
+    const u = UNIT_TYPES[k];
+    const abil = (UNIT_ABILITIES[k] || []).join(', ') || '—';
+    return `<div class="row"><span>${u.name}</span><span>HP ${u.hp} • ATK ${u.atk} • DEF ${u.def ?? 0} • MOVE ${u.move} • RNG ${u.range} • SIGHT ${u.sight ?? 3} • $${u.cost} • ${abil}</span></div>`;
+  });
+  return rows.join('');
+}
+
+function buildFortsTableHtml() {
+  const keys = Object.keys(FORT_TYPES);
+  const rows = keys.map(k => {
+    const f = FORT_TYPES[k];
+    const parts = [`HP ${f.hp}`];
+    if (typeof f.atk === 'number' && f.atk > 0) parts.push(`ATK ${f.atk}`);
+    if (typeof f.range === 'number' && f.range > 0) parts.push(`RNG ${f.range}`);
+    if (typeof f.income === 'number') parts.push(`Income +$${f.income}/turn`);
+    return `<div class="row"><span>${f.name}</span><span>${parts.join(' • ')} • $${f.cost}</span></div>`;
+  });
+  return rows.join('');
+}
 
 function updateUI() {
   // avoid noisy per-frame logs; show when major fields change (optional: could be expanded)
