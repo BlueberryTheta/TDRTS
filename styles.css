@@ -139,7 +139,9 @@ details.accordion[open] > summary::after { content: '▾'; }
   #roomBanner { margin: 4px 8px; padding: 4px 6px; gap: 6px; border-radius: 8px; }
   #roomBanner .banner-left { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
   #roomBanner .hud-label { display: none; }
+  #roomBanner .room-label { display: inline-block; font-size: 12px; color: var(--accent-khaki); }
   #roomBanner .hud-pill { min-width: 22px; padding: 2px 6px; font-size: 12px; }
+  #roomBanner #roomCode { flex: 1 1 auto; text-align: center; }
   #roomBanner .hud-button { padding: 4px 8px; font-size: 12px; }
   #roomBanner .hud-spacer { display: block; }
   /* Make shop horizontally scrollable ribbons to reduce vertical space */
@@ -211,3 +213,7 @@ details.accordion[open] > summary::after { content: '▾'; }
 #actions > h2 { display:none; }
 
 /* (removed MP Debug overlay styles) */
+
+
+#hudTop.panel:before, #hudTop.panel:after, #roomBanner.panel:before, #roomBanner.panel:after { display: none; content: none; }
+
