@@ -11,41 +11,11 @@ function distance(ax, ay, bx, by) {
   return Math.abs(ax - bx) + Math.abs(ay - by);
 }
 
-function pickPurchase(game) {
-  const money = game.money[1];
-  if (money >= UNIT_TYPES.Tank.cost) return UNIT_TYPES.Tank;
-  if (money >= UNIT_TYPES.Artillery.cost) return UNIT_TYPES.Artillery;
-  if (money >= UNIT_TYPES.Infantry.cost) return UNIT_TYPES.Infantry;
-  return null;
-}
+// (replaced by difficulty-aware pickPurchase)
 
-function pickSpawnTile(game) {
-  const base = game.bases[1];
-  const enemyBase = game.bases[0];
-  const candidates = [
-    { x: base.x, y: base.y },
-    { x: base.x + 1, y: base.y },
-    { x: base.x - 1, y: base.y },
-    { x: base.x, y: base.y + 1 },
-    { x: base.x, y: base.y - 1 },
-  ];
-  const valid = candidates.filter((t) => game.canSpawnAt(t.x, t.y));
-  if (valid.length === 0) return null;
-  valid.sort((a, b) => distance(a.x, a.y, enemyBase.x, enemyBase.y) - distance(b.x, b.y, enemyBase.x, enemyBase.y));
-  return valid[0];
-}
+// (replaced by difficulty-aware pickSpawnTile)
 
-function bestMoveToward(game, unit, target) {
-  const moves = Array.from(game.getMoveRange(unit));
-  if (moves.length === 0) return null;
-  // Exclude tiles with enemies (AI mirrors player movement rule)
-  const filtered = moves
-    .map((k) => k.split(',').map(Number))
-    .filter(([x, y]) => !game.getEnemyAt(x, y) && !game.getFortAt(x, y));
-  if (filtered.length === 0) return null;
-  filtered.sort((a, b) => distance(a[0], a[1], target.x, target.y) - distance(b[0], b[1], target.x, target.y));
-  return { x: filtered[0][0], y: filtered[0][1] };
-}
+// (replaced by difficulty-aware bestMoveToward)
 
 function tryAttack(game, unit) {
   const atks = game.getAttackableTiles(unit);
@@ -209,3 +179,4 @@ function tryAttackSmart(game, unit, diff='medium') {
   game.attack(unit, enemy);
   return true;
 }
+
