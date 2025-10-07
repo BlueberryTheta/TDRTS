@@ -58,6 +58,12 @@ loadBackgroundSequential([
 
 // Determine mode (ai or mp) via URL or landing modal
 let MODE = (new URLSearchParams(location.search)).get('mode');
+try {
+  console.log('[BOOT] main.js loaded', {
+    href: location.href,
+    hasModeParam: !!MODE,
+  });
+} catch {}
 const DEBUG = (() => { try { return (window.DEBUG === true) || (new URLSearchParams(location.search).get('debug') === '1'); } catch { return false; } })();
 function dlog(...args) { if (DEBUG) console.log('[APP]', ...args); }
 // Debug helper to inspect units in console
@@ -203,33 +209,59 @@ if (document.readyState === 'loading') {
 const modeModal = document.getElementById('modeModal');
 const playVsAiBtn = document.getElementById('playVsAi');
 const playOnlineBtn = document.getElementById('playOnline');
+try {
+  console.log('[BOOT] elements', {
+    modeModal: !!modeModal,
+    playVsAiBtn: !!playVsAiBtn,
+    playOnlineBtn: !!playOnlineBtn,
+  });
+} catch {}
 function setMode(m) {
+  try { console.log('[UI] setMode begin', m); } catch {}
   MODE = m;
   dlog('Mode set to', MODE);
   if (MODE === 'ai') {
-    if (modeModal) modeModal.style.display = 'none';
+    if (modeModal) { modeModal.style.display = 'none'; try { console.log('[UI] hide modeModal'); } catch {} }
     // If it's AI's turn (player 2) for any reason, run AI
     maybeRunAI();
   } else if (MODE === 'mp') {
     // Ensure modal stays open for create/join UI
-    if (modeModal) modeModal.style.display = 'flex';
+    if (modeModal) { modeModal.style.display = 'flex'; try { console.log('[UI] show modeModal (mp controls)'); } catch {} }
     const ctrls = document.getElementById('mpControls'); if (ctrls) ctrls.style.display='block';
     // Initialize multiplayer client (will wire the controls)
     initMultiplayer().catch(err => console.error('MP init failed', err));
   }
+  try { console.log('[UI] setMode end', m); } catch {}
 }
 try { window.__SETMODE = setMode; } catch {}
 if (!MODE) {
-  if (modeModal) modeModal.style.display = 'flex';
+  if (modeModal) { modeModal.style.display = 'flex'; try { console.log('[BOOT] no MODE param; showing modal'); } catch {} }
 } else {
   // Honor URL mode directly on load
+  try { console.log('[BOOT] MODE from URL -> setMode', MODE); } catch {}
   setMode(MODE);
 }
-if (playVsAiBtn) playVsAiBtn.onclick = () => setMode('ai');
-if (playOnlineBtn) playOnlineBtn.onclick = () => {
-  const ctrls = document.getElementById('mpControls'); if (ctrls) ctrls.style.display='block';
-  setMode('mp');
-};
+if (playVsAiBtn) {
+  playVsAiBtn.addEventListener('click', (e) => {
+    try { console.log('[CLICK] Play vs Computer'); } catch {}
+    e.preventDefault();
+    setMode('ai');
+  });
+}
+if (playOnlineBtn) {
+  playOnlineBtn.addEventListener('click', (e) => {
+    try { console.log('[CLICK] Play Online'); } catch {}
+    e.preventDefault();
+    const ctrls = document.getElementById('mpControls'); if (ctrls) ctrls.style.display='block';
+    setMode('mp');
+  });
+}
+try {
+  // Global error trap for early diagnostics
+  window.addEventListener('error', (ev) => {
+    try { console.error('[ERR]', ev?.message || ev); } catch {}
+  });
+} catch {}
 
 function updateUI() {
   // avoid noisy per-frame logs; show when major fields change (optional: could be expanded)
