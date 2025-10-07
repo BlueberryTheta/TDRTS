@@ -221,8 +221,9 @@ function setMode(m) {
 try { window.__SETMODE = setMode; } catch {}
 if (!MODE) {
   if (modeModal) modeModal.style.display = 'flex';
-} else if (modeModal) {
-  modeModal.style.display = 'none';
+} else {
+  // Honor URL mode directly on load
+  setMode(MODE);
 }
 if (playVsAiBtn) playVsAiBtn.onclick = () => setMode('ai');
 if (playOnlineBtn) playOnlineBtn.onclick = () => {
