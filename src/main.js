@@ -347,6 +347,8 @@ if (document.readyState === 'loading') {
 const modeModal = document.getElementById('modeModal');
 const playVsAiBtn = document.getElementById('playVsAi');
 const playOnlineBtn = document.getElementById('playOnline');
+const modeActions = document.querySelector('.mode-actions');
+const modeBackBtn = document.getElementById('modeBackBtn');
 const aiControls = document.getElementById('aiControls');
 let __AI_DIFF = 'medium';
 try {
@@ -365,10 +367,15 @@ function setMode(m) {
     if (modeModal) { modeModal.style.display = 'flex'; }
     if (aiControls) aiControls.style.display = 'block';
     const mpCtrls = document.getElementById('mpControls'); if (mpCtrls) mpCtrls.style.display = 'none';
+    if (modeActions) modeActions.style.display = 'none';
+    if (modeBackBtn) modeBackBtn.style.display = '';
   } else if (MODE === 'mp') {
     // Ensure modal stays open for create/join UI
     if (modeModal) { modeModal.style.display = 'flex'; try { console.log('[UI] show modeModal (mp controls)'); } catch {} }
     const ctrls = document.getElementById('mpControls'); if (ctrls) ctrls.style.display='block';
+    if (aiControls) aiControls.style.display = 'none';
+    if (modeActions) modeActions.style.display = 'none';
+    if (modeBackBtn) modeBackBtn.style.display = '';
     // Initialize multiplayer client (will wire the controls)
     initMultiplayer().catch(err => console.error('MP init failed', err));
   }
@@ -395,6 +402,22 @@ if (playOnlineBtn) {
     e.preventDefault();
     const ctrls = document.getElementById('mpControls'); if (ctrls) ctrls.style.display='block';
     setMode('mp');
+  });
+}
+// Back button to return to mode selection root
+if (modeBackBtn) {
+  modeBackBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    try { console.log('[CLICK] Back to mode selection'); } catch {}
+    // Hide sub-controls, show root actions
+    const mpCtrls = document.getElementById('mpControls'); if (mpCtrls) mpCtrls.style.display = 'none';
+    if (aiControls) aiControls.style.display = 'none';
+    if (modeActions) modeActions.style.display = 'flex';
+    if (modeBackBtn) modeBackBtn.style.display = 'none';
+    // Keep modal open
+    if (modeModal) modeModal.style.display = 'flex';
+    // Reset MODE indicator but don't reload
+    MODE = null;
   });
 }
 // AI difficulty controls
@@ -946,6 +969,57 @@ function wireMpControls() {
   };
   if (copyBtnModal) copyBtnModal.onclick = () => { if (window.currentRoomId) navigator.clipboard?.writeText(buildInviteLink(window.currentRoomId)); };
 }
+
+// Centralized in‑game menu wiring (idempotent)
+function wireMpInGameMenu() {
+  try {
+    const mm = document.getElementById('mpMenuModal'); if (!mm) return;
+    const leaveBtn = document.getElementById('mpLeaveBtn');
+    const mainBtn = document.getElementById('mpMainBtn');
+    const cancelBtn = document.getElementById('mpMenuCancelBtn');
+    const closeModal = () => { if (mm) mm.style.display = 'none'; };
+    if (cancelBtn && !cancelBtn.__wired) { cancelBtn.addEventListener('click', (e)=>{ e.preventDefault(); closeModal(); }); cancelBtn.__wired = true; }
+    if (leaveBtn && !leaveBtn.__wired) {
+      leaveBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        try { if (window.currentRoomId) localStorage.removeItem('REJOIN_' + window.currentRoomId); localStorage.removeItem('LAST_ROOM'); localStorage.removeItem('LAST_SEAT'); } catch {}
+        try { if (mpClient && mpClient.ws && typeof mpClient.ws.close==='function') mpClient.ws.close(); } catch {}
+        try { if (mpClient && typeof mpClient.polling === 'boolean') mpClient.polling = false; } catch {}
+        try { window.MP_TRANSPORT = undefined; } catch {}
+        mpClient = null;
+        const banner = document.getElementById('roomBanner'); if (banner) banner.style.display = 'none';
+        const modeModal = document.getElementById('modeModal'); if (modeModal) modeModal.style.display = 'flex';
+        const modeActions = document.querySelector('.mode-actions'); if (modeActions) modeActions.style.display = 'flex';
+        const aiControls = document.getElementById('aiControls'); if (aiControls) aiControls.style.display = 'none';
+        const mpCtrls = document.getElementById('mpControls'); if (mpCtrls) mpCtrls.style.display = 'none';
+        const backBtn = document.getElementById('modeBackBtn'); if (backBtn) backBtn.style.display = 'none';
+        closeModal();
+      });
+      leaveBtn.__wired = true;
+    }
+    if (mainBtn && !mainBtn.__wired) {
+      mainBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        try { if (window.currentRoomId) localStorage.removeItem('REJOIN_' + window.currentRoomId); localStorage.removeItem('LAST_ROOM'); localStorage.removeItem('LAST_SEAT'); } catch {}
+        try { if (mpClient && mpClient.ws && typeof mpClient.ws.close==='function') mpClient.ws.close(); } catch {}
+        try { if (mpClient && typeof mpClient.polling === 'boolean') mpClient.polling = false; } catch {}
+        mpClient = null;
+        location.href = location.pathname;
+      });
+      mainBtn.__wired = true;
+    }
+    // Close when clicking backdrop
+    if (!mm.__backdrop) {
+      mm.addEventListener('click', (e) => { if (e.target === mm) closeModal(); });
+      mm.__backdrop = true;
+    }
+  } catch {}
+}
+
+// Ensure handlers once DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => { try { wireMpInGameMenu(); } catch {} }, { once: true });
+} else { try { wireMpInGameMenu(); } catch {} }
 
 
 
