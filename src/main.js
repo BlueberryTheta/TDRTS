@@ -501,23 +501,52 @@ function buildUnitsTableHtml() {
   const keys = Object.keys(UNIT_TYPES);
   const rows = keys.map(k => {
     const u = UNIT_TYPES[k];
-    const abil = (UNIT_ABILITIES[k] || []).join(', ') || '—';
-    return `<div class="row"><span>${u.name}</span><span>HP ${u.hp} • ATK ${u.atk} • DEF ${u.def ?? 0} • MOVE ${u.move} • RNG ${u.range} • SIGHT ${u.sight ?? 3} • $${u.cost} • ${abil}</span></div>`;
+    const abilList = (UNIT_ABILITIES[k] || []);
+    const abil = abilList.length ? abilList.map(a => `<span class="ability">${a}</span>`).join('') : '<span class="hint">No special abilities</span>';
+    const img = (typeof UNIT_TO_FILE !== 'undefined' && UNIT_TO_FILE[k]) ? UNIT_TO_FILE[k] : '';
+    return `
+      <div class="tu-row">
+        ${img ? `<img class="tu-thumb" src="${img}" alt="${u.name}" />` : `<div class="tu-thumb"></div>`}
+        <div class="tu-body">
+          <div class="tu-name">${u.name} <span class="hint" style="font-weight:normal">$${u.cost}</span></div>
+          <div class="tu-stats">
+            <span class="pair"><span>HP</span><span>${u.hp}</span></span>
+            <span class="pair"><span>ATK</span><span>${u.atk}</span></span>
+            <span class="pair"><span>DEF</span><span>${u.def ?? 0}</span></span>
+            <span class="pair"><span>MOVE</span><span>${u.move}</span></span>
+            <span class="pair"><span>RNG</span><span>${u.range}</span></span>
+            <span class="pair"><span>SIGHT</span><span>${u.sight ?? 3}</span></span>
+          </div>
+          <div class="tu-abil">${abil}</div>
+        </div>
+      </div>
+    `;
   });
-  return rows.join('');
+  return `<div class="tutorial-list">${rows.join('')}</div>`;
 }
 
 function buildFortsTableHtml() {
   const keys = Object.keys(FORT_TYPES);
   const rows = keys.map(k => {
     const f = FORT_TYPES[k];
-    const parts = [`HP ${f.hp}`];
-    if (typeof f.atk === 'number' && f.atk > 0) parts.push(`ATK ${f.atk}`);
-    if (typeof f.range === 'number' && f.range > 0) parts.push(`RNG ${f.range}`);
-    if (typeof f.income === 'number') parts.push(`Income +$${f.income}/turn`);
-    return `<div class="row"><span>${f.name}</span><span>${parts.join(' • ')} • $${f.cost}</span></div>`;
+    const parts = [];
+    parts.push(`<span class=\"pair\"><span>HP</span><span>${f.hp}</span></span>`);
+    if (typeof f.atk === 'number' && f.atk > 0) parts.push(`<span class=\"pair\"><span>ATK</span><span>${f.atk}</span></span>`);
+    if (typeof f.range === 'number' && f.range > 0) parts.push(`<span class=\"pair\"><span>RNG</span><span>${f.range}</span></span>`);
+    if (typeof f.income === 'number') parts.push(`<span class=\"pair\"><span>Income</span><span>+$${f.income}/turn</span></span>`);
+    // Find image from main.js mapping if present
+    const img = (typeof FORT_TO_FILE !== 'undefined' && FORT_TO_FILE[k]) ? FORT_TO_FILE[k] : '';
+    return `
+      <div class="tu-row">
+        ${img ? `<img class="tu-thumb" src="${img}" alt="${f.name}" />` : `<div class="tu-thumb"></div>`}
+        <div class="tu-body">
+          <div class="tu-name">${f.name} <span class="hint" style="font-weight:normal">$${f.cost}</span></div>
+          <div class="tu-stats">${parts.join('')}</div>
+        </div>
+      </div>
+    `;
   });
-  return rows.join('');
+  return `<div class="tutorial-list">${rows.join('')}</div>`;
 }
 
 function updateUI() {

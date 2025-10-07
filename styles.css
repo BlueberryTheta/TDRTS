@@ -157,6 +157,15 @@ details.accordion[open] > summary::after { content: '▾'; }
 .tutorial-body h3 { margin: 8px 0 4px; font-size: 15px; color: var(--accent-khaki); }
 .tutorial-body ul { margin: 6px 0 6px 18px; }
 .tutorial-body li { margin: 4px 0; }
+.tutorial-list { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+.tu-row { display: flex; gap: 10px; align-items: flex-start; background: rgba(0,0,0,0.18); border: 1px solid rgba(0,0,0,0.35); border-radius: 10px; padding: 8px 10px; }
+.tu-thumb { width: 44px; height: 44px; border-radius: 8px; object-fit: contain; image-rendering: pixelated; background: #0d1117; border: 1px solid var(--line); }
+.tu-body { flex: 1; }
+.tu-name { font-weight: 600; color: var(--accent-khaki); margin-bottom: 2px; }
+.tu-stats { display: flex; flex-wrap: wrap; gap: 10px; font-size: 12px; color: var(--muted); }
+.tu-stats .pair { display: inline-flex; gap: 4px; }
+.tu-abil { margin-top: 4px; }
+.tu-abil .ability { margin-right: 4px; }
 
 /* Modal overlay */
 .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; z-index: 999; }
