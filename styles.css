@@ -136,7 +136,12 @@ details.accordion[open] > summary::after { content: '▾'; }
   #left { padding: 8px; }
   #right { padding: 8px 10px; }
   #gameCanvas { width: 100%; height: auto; border-width: 1px; }
-  #roomBanner { margin: 4px 8px; }
+  #roomBanner { margin: 4px 8px; padding: 4px 6px; gap: 6px; border-radius: 8px; }
+  #roomBanner .banner-left { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
+  #roomBanner .hud-label { display: none; }
+  #roomBanner .hud-pill { min-width: 22px; padding: 2px 6px; font-size: 12px; }
+  #roomBanner .hud-button { padding: 4px 8px; font-size: 12px; }
+  #roomBanner .hud-spacer { display: block; }
   /* Make shop horizontally scrollable ribbons to reduce vertical space */
   .shop-grid { grid-auto-flow: column; grid-auto-columns: minmax(140px, 1fr); overflow-x: auto; grid-template-columns: none; }
   .shop-item { padding: 10px; }
