@@ -109,6 +109,14 @@ li { margin: 4px 0; }
 .mode-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
 .mode-actions .hud-button { min-width: 180px; text-align: center; }
 
+/* Center content inside the main menu modal */
+#modeModal .mp-grid { justify-items: center; }
+#modeModal .mp-card { text-align: center; }
+#modeModal .stat-row { justify-content: center; }
+#modeModal .stat-row .input { text-align: center; }
+#aiControls .stat-row { justify-content: center; gap: 8px; }
+#aiControls .ai-diff { min-width: 96px; }
+
 /* Accordion details styling */
 details.accordion > summary {
   cursor: pointer; user-select: none; list-style: none; outline: none; padding: 6px 0; color: var(--accent-khaki);
