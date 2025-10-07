@@ -541,7 +541,12 @@ function showRoomBanner(roomId, player) {
   if (banner) banner.style.display = '';
   if (codeEl) codeEl.textContent = roomId;
   if (playerEl) playerEl.textContent = player === 0 ? 'P1' : 'P2';
-  if\\ \\(copyBtn\\)\\ copyBtn\\.onclick\\ =\\ \\(\\)\\ =>\\ navigator\\.clipboard\\?\\.writeText\\(buildInviteLink\\(roomId\\)\\);\\ const\\ menuBtn\\ =\\ document\\.getElementById\\('mpMenuBtn'\\);\\ if\\ \\(menuBtn\\)\\ menuBtn\\.onclick\\ =\\ \\(\\)\\ =>\\ \\{\\ const\\ mm\\ =\\ document\\.getElementById\\('mpMenuModal'\\);\\ if\\ \\(mm\\)\\ mm\\.style\\.display\\ =\\ 'flex';\\ }; const menuBtn = document.getElementById('mpMenuBtn'); if (menuBtn) menuBtn.onclick = () => { const mm = document.getElementById('mpMenuModal'); if (mm) mm.style.display = 'flex'; };
+  if (copyBtn) copyBtn.onclick = () => navigator.clipboard?.writeText(buildInviteLink(roomId));
+  const menuBtn = document.getElementById('mpMenuBtn');
+  if (menuBtn) menuBtn.onclick = () => {
+    const mm = document.getElementById('mpMenuModal');
+    if (mm) mm.style.display = 'flex';
+  };
 }
 
 async function initMultiplayer() {
