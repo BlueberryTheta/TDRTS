@@ -209,6 +209,8 @@ if (document.readyState === 'loading') {
 const modeModal = document.getElementById('modeModal');
 const playVsAiBtn = document.getElementById('playVsAi');
 const playOnlineBtn = document.getElementById('playOnline');
+const aiControls = document.getElementById('aiControls');
+let __AI_DIFF = 'medium';
 try {
   console.log('[BOOT] elements', {
     modeModal: !!modeModal,
@@ -221,9 +223,10 @@ function setMode(m) {
   MODE = m;
   dlog('Mode set to', MODE);
   if (MODE === 'ai') {
-    if (modeModal) { modeModal.style.display = 'none'; try { console.log('[UI] hide modeModal'); } catch {} }
-    // If it's AI's turn (player 2) for any reason, run AI
-    maybeRunAI();
+    // Show difficulty picker first
+    if (modeModal) { modeModal.style.display = 'flex'; }
+    if (aiControls) aiControls.style.display = 'block';
+    const mpCtrls = document.getElementById('mpControls'); if (mpCtrls) mpCtrls.style.display = 'none';
   } else if (MODE === 'mp') {
     // Ensure modal stays open for create/join UI
     if (modeModal) { modeModal.style.display = 'flex'; try { console.log('[UI] show modeModal (mp controls)'); } catch {} }
@@ -256,6 +259,25 @@ if (playOnlineBtn) {
     setMode('mp');
   });
 }
+// AI difficulty controls
+try {
+  const diffBtns = document.querySelectorAll('.ai-diff');
+  diffBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      __AI_DIFF = btn.getAttribute('data-diff') || 'medium';
+      diffBtns.forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+    });
+  });
+  const startBtn = document.getElementById('startAiBtn');
+  if (startBtn) startBtn.addEventListener('click', () => {
+    try { console.log('[CLICK] Start AI Game diff=', __AI_DIFF); } catch {}
+    window.AI_DIFFICULTY = __AI_DIFF;
+    if (aiControls) aiControls.style.display = 'none';
+    if (modeModal) modeModal.style.display = 'none';
+    maybeRunAI();
+  });
+} catch {}
 try {
   // Global error trap for early diagnostics
   window.addEventListener('error', (ev) => {
@@ -414,7 +436,8 @@ async function maybeRunAI() {
   if (game.currentPlayer !== 1) return;
   setUIEnabled(false);
   try {
-    await runAiTurn(game);
+    const diff = (typeof window !== 'undefined' && window.AI_DIFFICULTY) ? window.AI_DIFFICULTY : 'medium';
+    await runAiTurn(game, diff);
   } catch (err) {
     console.error('AI turn error:', err);
   } finally {

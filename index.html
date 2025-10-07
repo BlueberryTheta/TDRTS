@@ -139,8 +139,24 @@
         <h2 id="modeTitle" style="margin-top:0">Select Mode</h2>
         <p class="hint">Choose how you want to play.</p>
         <div style="display:flex; gap:10px; justify-content:center; margin-top:8px">
-          <a id="playVsAi" class="hud-button" href="?mode=ai">Play vs Computer</a>
-          <a id="playOnline" class="hud-button" href="?mode=mp">Play Online (Friend)</a>
+          <button id="playVsAi" class="hud-button">Play vs Computer</button>
+          <button id="playOnline" class="hud-button">Play Online (Friend)</button>
+        </div>
+        <div id="aiControls" style="display:none; margin-top:12px">
+          <div class="mp-grid">
+            <div class="mp-card">
+              <h3>Difficulty</h3>
+              <div class="stat-row" style="flex-wrap:wrap; gap:6px">
+                <button class="hud-button ai-diff" data-diff="easy">Easy</button>
+                <button class="hud-button ai-diff" data-diff="medium">Medium</button>
+                <button class="hud-button ai-diff" data-diff="hard">Hard</button>
+              </div>
+              <div class="hint">Choose how smart the computer plays.</div>
+            </div>
+            <div class="mp-card" style="display:flex; align-items:center; justify-content:center">
+              <button id="startAiBtn" class="hud-button">Start Game</button>
+            </div>
+          </div>
         </div>
         <div id="mpControls" style="display:none; margin-top:12px">
           <div class="mp-grid">

@@ -90,6 +90,7 @@ li { margin: 4px 0; }
 .hud-spacer { flex: 1; }
 .hud-button { background: #b08d57; border: 1px solid #8b6b3b; border-radius: 8px; padding: 6px 12px; color: #fff; cursor: pointer; }
 .hud-button:hover { filter: brightness(1.07); }
+.hud-button.selected { outline: 2px solid #c2b280; }
 
 /* Opponent status colors */
 .hud-pill.connected { background: rgba(46,160,67,0.22); border-color: #2ea043; }
