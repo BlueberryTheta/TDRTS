@@ -151,16 +151,35 @@ export function attachInput(canvas, tileSize, game, hooks) {
     }
   };
 
-  const onClick = (e) => { onPoint(e.clientX, e.clientY); };
+  let holdTimer = null;
+  let holdFired = false;
+  let startXY = null;
+  const HOLD_MS = 500;
+
+  const onClick = (e) => { if (!holdFired) onPoint(e.clientX, e.clientY); };
   const onPointerDown = (e) => {
+    const cx = e.clientX, cy = e.clientY;
+    holdFired = false; startXY = { cx, cy };
+    // Start long-press timer for any pointer
+    try { clearTimeout(holdTimer); } catch {}
+    holdTimer = setTimeout(() => {
+      const { x, y } = computeTile(cx, cy);
+      try { if (typeof window !== 'undefined' && window.SHOW_DEPLOYED_PREVIEW) window.SHOW_DEPLOYED_PREVIEW(x, y, cx, cy); } catch {}
+      holdFired = true;
+    }, HOLD_MS);
+    // For touch/pen, also trigger normal point immediately
     if (e.pointerType === 'touch' || e.pointerType === 'pen') {
       e.preventDefault();
-      onPoint(e.clientX, e.clientY);
+      onPoint(cx, cy);
     }
   };
+  const onPointerUp = () => { try { clearTimeout(holdTimer); } catch {}; };
+  const onPointerCancel = () => { try { clearTimeout(holdTimer); } catch {}; };
 
   canvas.addEventListener('click', onClick);
   canvas.addEventListener('pointerdown', onPointerDown, { passive: false });
+  canvas.addEventListener('pointerup', onPointerUp, { passive: true });
+  canvas.addEventListener('pointercancel', onPointerCancel, { passive: true });
 
-  canvas[HANDLERS_KEY] = { click: onClick, pointerdown: onPointerDown };
+  canvas[HANDLERS_KEY] = { click: onClick, pointerdown: onPointerDown, pointerup: onPointerUp, pointercancel: onPointerCancel };
 }

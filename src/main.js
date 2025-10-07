@@ -237,6 +237,52 @@ function showFortPreview(fortKey, anchorEl) {
   if (close) close.onclick = () => hideShopPreview();
 }
 
+// --- Deployed unit/fort preview (press-and-hold) ---
+function buildDeployedPreviewHtml(entity) {
+  if (!entity) return '<div class="hint">Unknown</div>';
+  if (entity.fort) {
+    const atk = entity.atk ?? 0; const rng = entity.range ?? 0;
+    return `
+      <span class="close" id="shopPrevClose">×</span>
+      <h3>${entity.type}</h3>
+      <div class="row"><span>HP</span><span>${Math.max(0, entity.hp)}/${entity.maxHp ?? entity.hp}</span></div>
+      <div class="row"><span>ATK</span><span>${atk}</span></div>
+      <div class="row"><span>RANGE</span><span>${rng}</span></div>
+    `;
+  }
+  const abil = (UNIT_ABILITIES[entity.type] || []).map(a => `<span class="ability">${a}</span>`).join('');
+  const rk = rankForXP(entity.xp || 0).label;
+  return `
+    <span class="close" id="shopPrevClose">×</span>
+    <h3>${entity.type} <span class="hint" style="font-weight:normal">${entity.player === 0 ? 'P1' : 'P2'}</span></h3>
+    <div class="row"><span>HP</span><span>${Math.max(0, entity.hp)}/${entity.maxHp ?? entity.hp}</span></div>
+    <div class="row"><span>ATK</span><span>${entity.atk ?? 0}</span></div>
+    <div class="row"><span>DEF</span><span>${entity.def ?? 0}</span></div>
+    <div class="row"><span>MOVE</span><span>${entity.move ?? '-'}</span></div>
+    <div class="row"><span>RANGE</span><span>${entity.range ?? '-'}</span></div>
+    <div class="row"><span>SIGHT</span><span>${entity.sight ?? 3}</span></div>
+    <div class="row"><span>Rank</span><span>${rk}</span></div>
+    <div class="abilities">${abil || '<span class="hint">No special abilities</span>'}</div>
+  `;
+}
+
+function showDeployedPreviewAt(x, y, clientX, clientY) {
+  const box = document.getElementById('shopPreview'); if (!box) return;
+  // Prefer unit if present; else fort
+  const unit = (game.units || []).find(u => u.x === x && u.y === y);
+  const fort = (game.forts || []).find(f => f.x === x && f.y === y);
+  const entity = unit || fort;
+  if (!entity) return;
+  box.innerHTML = buildDeployedPreviewHtml(entity);
+  box.style.display = 'block';
+  const left = Math.min(window.innerWidth - 280, Math.max(8, clientX + 8));
+  const top = Math.min(window.innerHeight - 200, Math.max(8, clientY - 8 - (box.offsetHeight || 160)));
+  box.style.left = `${left}px`;
+  box.style.top = `${top}px`;
+  const close = document.getElementById('shopPrevClose'); if (close) close.onclick = () => hideShopPreview();
+}
+try { window.SHOW_DEPLOYED_PREVIEW = (x,y,cx,cy) => { try { showDeployedPreviewAt(x,y,cx,cy); } catch {} }; } catch {}
+
 // Expand accordions on desktop by default
 function setAccordionsOpenByViewport() {
   const open = window.innerWidth > 900;
@@ -248,6 +294,24 @@ setAccordionsOpenByViewport();
 window.addEventListener('resize', () => {
   setAccordionsOpenByViewport();
 });
+
+// Move MP game log to bottom on mobile by reparenting it to #right
+function placeLogByViewport() {
+  try {
+    const log = document.getElementById('mpLogPanel');
+    if (!log) return;
+    const left = document.getElementById('left');
+    const right = document.getElementById('right');
+    if (window.innerWidth <= 900) {
+      if (right && log.parentElement !== right) right.appendChild(log);
+    } else {
+      // Place back under the canvas in #left
+      if (left && log.parentElement !== left) left.appendChild(log);
+    }
+  } catch {}
+}
+placeLogByViewport();
+window.addEventListener('resize', placeLogByViewport);
 
 // MP Debug overlay toggle wiring (ensure after DOMContentLoaded)
 function wireMpDebug() {

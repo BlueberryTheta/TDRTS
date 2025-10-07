@@ -106,6 +106,8 @@ li { margin: 4px 0; }
 .mp-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
 .mp-card { background: rgba(0,0,0,0.2); border: 1px solid rgba(0,0,0,0.35); border-radius: 10px; padding: 10px; }
 .input { background: #0f1419; color: var(--text); border: 1px solid #30363d; border-radius: 6px; padding: 6px 8px; min-width: 140px; }
+.mode-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.mode-actions .hud-button { min-width: 180px; text-align: center; }
 
 /* Accordion details styling */
 details.accordion > summary {
@@ -136,6 +138,8 @@ details.accordion[open] > summary::after { content: '▾'; }
   #right #status, #right #actions { display: none; }
   #right hr { display: none; }
   #shop.panel { margin-top: 6px; }
+  /* Mode actions full-width symmetry on small screens */
+  .mode-actions .hud-button { flex: 1 1 48%; min-width: 0; }
 }
 
 /* Modal overlay */

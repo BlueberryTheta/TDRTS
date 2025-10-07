@@ -76,7 +76,7 @@
           <div class="hint">Select a unit to move/attack. Click an enemy to attack if in range.</div>
         </div>
         <hr />
-        <div id="unitPanel" class="panel">
+        <div id="unitPanel" class="panel" style="display:none">
           <h2 style="margin-top:0">Selected Unit</h2>
           <div id="unitNone" class="hint">No unit selected.</div>
           <div id="unitInfo" style="display:none">
@@ -144,7 +144,7 @@
       <div class="modal-content panel">
         <h2 id="modeTitle" style="margin-top:0">Select Mode</h2>
         <p class="hint">Choose how you want to play.</p>
-        <div style="display:flex; gap:10px; justify-content:center; margin-top:8px">
+        <div class="mode-actions" style="margin-top:8px">
           <button id="playVsAi" class="hud-button">Play vs Computer</button>
           <button id="playOnline" class="hud-button">Play Online (Friend)</button>
         </div>
