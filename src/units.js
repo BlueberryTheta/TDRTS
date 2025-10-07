@@ -1,11 +1,12 @@
 export const UNIT_TYPES = {
-  Infantry: { name: 'Infantry', hp: 10, atk: 4, def: 2, move: 3, range: 1, sight: 4, cost: 50, color: '#58a6ff' },
+  // Updated movement: Infantry/Officer/Medic/Engineer: 2; Tank: 3; MechanizedInfantry: 4; Artillery: 1
+  Infantry: { name: 'Infantry', hp: 10, atk: 4, def: 2, move: 2, range: 1, sight: 4, cost: 50, color: '#58a6ff' },
   Scout: { name: 'Scout', hp: 8, atk: 2, def: 1, move: 4, range: 1, sight: 6, cost: 70, color: '#94e2ff' },
-  Engineer: { name: 'Engineer', hp: 10, atk: 3, def: 1, move: 3, range: 1, sight: 3, cost: 80, color: '#7ee787' },
-  Medic: { name: 'Medic', hp: 8, atk: 1, def: 1, move: 3, range: 1, sight: 3, cost: 90, color: '#56d364' },
+  Engineer: { name: 'Engineer', hp: 10, atk: 3, def: 1, move: 2, range: 1, sight: 3, cost: 80, color: '#7ee787' },
+  Medic: { name: 'Medic', hp: 8, atk: 1, def: 1, move: 2, range: 1, sight: 3, cost: 90, color: '#56d364' },
   Officer: { name: 'Officer', hp: 10, atk: 4, def: 2, move: 2, range: 2, sight: 3, cost: 120, color: '#a5d6ff' },
-  MechanizedInfantry: { name: 'MechanizedInfantry', hp: 14, atk: 5, def: 2, move: 3, range: 1, sight: 4, cost: 160, color: '#4aa3ff' },
-  Tank: { name: 'Tank', hp: 18, atk: 7, def: 3, move: 2, range: 1, sight: 4, cost: 180, color: '#1f6feb' },
+  MechanizedInfantry: { name: 'MechanizedInfantry', hp: 14, atk: 5, def: 2, move: 4, range: 1, sight: 4, cost: 160, color: '#4aa3ff' },
+  Tank: { name: 'Tank', hp: 18, atk: 7, def: 3, move: 3, range: 1, sight: 4, cost: 180, color: '#1f6feb' },
   Artillery: { name: 'Artillery', hp: 12, atk: 5, def: 1, move: 1, range: 3, sight: 3, cost: 180, color: '#79c0ff' },
 };
 

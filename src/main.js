@@ -163,6 +163,50 @@ function decorateShop() {
 }
 decorateShop();
 
+// --- Shop preview modal (units only) ---
+function buildUnitPreviewHtml(key) {
+  const ut = UNIT_TYPES[key];
+  if (!ut) return '<div class="hint">Unknown unit</div>';
+  const abil = (UNIT_ABILITIES[key] || []).map(a => `<span class="ability">${a}</span>`).join('');
+  const rank0 = rankForXP(0).label;
+  return `
+    <span class="close" id="shopPrevClose">×</span>
+    <h3>${ut.name} <span class="hint" style="font-weight:normal">$${ut.cost}</span></h3>
+    <div class="row"><span>HP</span><span>${ut.hp}</span></div>
+    <div class="row"><span>ATK</span><span>${ut.atk}</span></div>
+    <div class="row"><span>DEF</span><span>${ut.def ?? 0}</span></div>
+    <div class="row"><span>MOVE</span><span>${ut.move}</span></div>
+    <div class="row"><span>RANGE</span><span>${ut.range}</span></div>
+    <div class="row"><span>SIGHT</span><span>${ut.sight ?? 3}</span></div>
+    <div class="row"><span>Rank</span><span>${rank0}</span></div>
+    <div class="abilities">${abil || '<span class="hint">No special abilities</span>'}</div>
+    <div class="hint" style="margin-top:6px">Click a highlighted tile on the map to place.</div>
+  `;
+}
+
+function showShopPreview(unitKey, anchorEl) {
+  const box = document.getElementById('shopPreview');
+  if (!box) return;
+  box.innerHTML = buildUnitPreviewHtml(unitKey);
+  box.style.display = 'block';
+  // Position near the unit image (thumb) or the button
+  const thumb = anchorEl.querySelector ? (anchorEl.querySelector('.thumb') || anchorEl) : anchorEl;
+  const r = thumb.getBoundingClientRect();
+  const pad = 4;
+  // Place above and aligned left by default; clamp to viewport
+  const preferredTop = Math.max(8, r.top - (box.offsetHeight || 180) - 8);
+  const left = Math.min(window.innerWidth - 280, Math.max(8, r.left));
+  box.style.top = `${preferredTop}px`;
+  box.style.left = `${left}px`;
+  const close = document.getElementById('shopPrevClose');
+  if (close) close.onclick = () => hideShopPreview();
+}
+
+function hideShopPreview() {
+  const box = document.getElementById('shopPreview');
+  if (box) box.style.display = 'none';
+}
+
 // Expand accordions on desktop by default
 function setAccordionsOpenByViewport() {
   const open = window.innerWidth > 900;
@@ -379,6 +423,7 @@ ui.shop.addEventListener('click', (e) => {
   dlog('SHOP click', { type, fortTypeKey, turn: game.turn, cp: game.currentPlayer, me: mpClient?.player, ready, myTurn });
   if (!myTurn) { dlog('SHOP blocked: not your turn or not ready'); return; }
   if (type) {
+    try { showShopPreview(type, el); } catch {}
     const unitType = UNIT_TYPES[type];
     if (!unitType) { dlog('SHOP unitType missing', type); return; }
     game.queueSpawn(unitType);
