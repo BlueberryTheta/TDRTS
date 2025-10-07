@@ -41,6 +41,7 @@ export function attachInput(canvas, tileSize, game, hooks) {
         const { fortType } = game.buildQueue;
         const eng = game.getUnitById(game.buildQueue.engineerId);
         hk.buildFort(fortType.name, eng ? eng.id : null, x, y);
+        try { if (typeof window !== 'undefined' && window.HIDE_SHOP_PREVIEW) window.HIDE_SHOP_PREVIEW(); } catch {}
         game.buildQueue = null; // await server
         return;
       } else {
@@ -57,6 +58,7 @@ export function attachInput(canvas, tileSize, game, hooks) {
         const kind = q.kind;
         if (kind === 'unit') hk.spawn({ kind, unitType: q.unitType.name, x, y });
         else if (kind === 'fort') hk.spawn({ kind, fortType: q.fortType.name, x, y });
+        try { if (typeof window !== 'undefined' && window.HIDE_SHOP_PREVIEW) window.HIDE_SHOP_PREVIEW(); } catch {}
         if (typeof window !== 'undefined' && window.__LAST_HOOK_SENT !== true && window.__MP_CLIENT) {
           try {
             if (kind === 'unit') { console.log('HOOK spawn (post-fallback)', { kind, unitType: q.unitType.name, x, y }); window.__MP_CLIENT.action({ kind: 'spawn', spawnType: 'unit', unitType: q.unitType.name, x, y }); }
@@ -74,7 +76,7 @@ export function attachInput(canvas, tileSize, game, hooks) {
             if (typeof window.SYNC_SNAPSHOT === 'function') window.SYNC_SNAPSHOT();
           } catch {}
         }
-        if (spawned) return; // done
+        if (spawned) { try { if (typeof window !== 'undefined' && window.HIDE_SHOP_PREVIEW) window.HIDE_SHOP_PREVIEW(); } catch {} return; } // done
         // If invalid, fall through to normal handling (to allow selection)
       }
     }

@@ -168,7 +168,6 @@ function buildUnitPreviewHtml(key) {
   const ut = UNIT_TYPES[key];
   if (!ut) return '<div class="hint">Unknown unit</div>';
   const abil = (UNIT_ABILITIES[key] || []).map(a => `<span class="ability">${a}</span>`).join('');
-  const rank0 = rankForXP(0).label;
   return `
     <span class="close" id="shopPrevClose">×</span>
     <h3>${ut.name} <span class="hint" style="font-weight:normal">$${ut.cost}</span></h3>
@@ -178,7 +177,6 @@ function buildUnitPreviewHtml(key) {
     <div class="row"><span>MOVE</span><span>${ut.move}</span></div>
     <div class="row"><span>RANGE</span><span>${ut.range}</span></div>
     <div class="row"><span>SIGHT</span><span>${ut.sight ?? 3}</span></div>
-    <div class="row"><span>Rank</span><span>${rank0}</span></div>
     <div class="abilities">${abil || '<span class="hint">No special abilities</span>'}</div>
     <div class="hint" style="margin-top:6px">Click a highlighted tile on the map to place.</div>
   `;
@@ -205,6 +203,38 @@ function showShopPreview(unitKey, anchorEl) {
 function hideShopPreview() {
   const box = document.getElementById('shopPreview');
   if (box) box.style.display = 'none';
+}
+
+function buildFortPreviewHtml(key) {
+  const ft = FORT_TYPES[key];
+  if (!ft) return '<div class="hint">Unknown fortification</div>';
+  const lines = [];
+  lines.push(`<div class="row"><span>HP</span><span>${ft.hp}</span></div>`);
+  const atk = ft.atk ?? 0; const rng = ft.range ?? 0;
+  lines.push(`<div class="row"><span>ATK</span><span>${atk}</span></div>`);
+  lines.push(`<div class="row"><span>RANGE</span><span>${rng}</span></div>`);
+  if (typeof ft.income === 'number') lines.push(`<div class="row"><span>Income</span><span>+$${ft.income}/turn</span></div>`);
+  return `
+    <span class="close" id="shopPrevClose">×</span>
+    <h3>${ft.name} <span class="hint" style="font-weight:normal">$${ft.cost}</span></h3>
+    ${lines.join('')}
+    <div class="hint" style="margin-top:6px">Place near your base (highlighted tiles).</div>
+  `;
+}
+
+function showFortPreview(fortKey, anchorEl) {
+  const box = document.getElementById('shopPreview');
+  if (!box) return;
+  box.innerHTML = buildFortPreviewHtml(fortKey);
+  box.style.display = 'block';
+  const thumb = anchorEl.querySelector ? (anchorEl.querySelector('.thumb') || anchorEl) : anchorEl;
+  const r = thumb.getBoundingClientRect();
+  const left = Math.min(window.innerWidth - 280, Math.max(8, r.left));
+  const top = Math.max(8, r.top - (box.offsetHeight || 160) - 8);
+  box.style.left = `${left}px`;
+  box.style.top = `${top}px`;
+  const close = document.getElementById('shopPrevClose');
+  if (close) close.onclick = () => hideShopPreview();
 }
 
 // Expand accordions on desktop by default
@@ -423,7 +453,7 @@ ui.shop.addEventListener('click', (e) => {
   dlog('SHOP click', { type, fortTypeKey, turn: game.turn, cp: game.currentPlayer, me: mpClient?.player, ready, myTurn });
   if (!myTurn) { dlog('SHOP blocked: not your turn or not ready'); return; }
   if (type) {
-    try { showShopPreview(type, el); } catch {}
+    if (SHOW_SHOP_INFO) { try { showShopPreview(type, el); } catch {} }
     const unitType = UNIT_TYPES[type];
     if (!unitType) { dlog('SHOP unitType missing', type); return; }
     game.queueSpawn(unitType);
@@ -431,6 +461,7 @@ ui.shop.addEventListener('click', (e) => {
     return;
   }
   if (fortTypeKey) {
+    if (SHOW_SHOP_INFO) { try { showFortPreview(fortTypeKey, el); } catch {} }
     const fortType = FORT_TYPES[fortTypeKey];
     if (!fortType) { dlog('SHOP fortType missing', fortTypeKey); return; }
     // If an Engineer is selected for the current player and not acted, queue build around it
@@ -863,3 +894,36 @@ function wireMpControls() {
 
 
 
+// Toggle for shop info
+let SHOW_SHOP_INFO = true;
+try {
+  const saved = localStorage.getItem('SHOP_INFO_ON');
+  SHOW_SHOP_INFO = saved == null ? true : saved === '1';
+} catch {}
+try {
+  const t = document.getElementById('shopInfoToggle');
+  if (t) {
+    t.checked = !!SHOW_SHOP_INFO;
+    t.addEventListener('change', () => {
+      SHOW_SHOP_INFO = !!t.checked;
+      try { localStorage.setItem('SHOP_INFO_ON', SHOW_SHOP_INFO ? '1' : '0'); } catch {}
+      if (!SHOW_SHOP_INFO) hideShopPreview();
+    });
+  }
+} catch {}
+try { window.HIDE_SHOP_PREVIEW = hideShopPreview; } catch {}
+
+// Hide preview on outside click or Escape
+try {
+  document.addEventListener('click', (e) => {
+    const box = document.getElementById('shopPreview');
+    if (!box || box.style.display === 'none') return;
+    const path = e.composedPath ? e.composedPath() : [];
+    const insidePreview = path.includes(box);
+    const inShop = path.some(el => el && el.id === 'shop' || (el && el.classList && el.classList.contains && el.classList.contains('shop-item')));
+    if (!insidePreview && !inShop) hideShopPreview();
+  }, true);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') hideShopPreview();
+  });
+} catch {}
