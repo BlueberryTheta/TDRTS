@@ -147,6 +147,7 @@
         <div class="mode-actions" style="margin-top:8px">
           <button id="playVsAi" class="hud-button">Play vs Computer</button>
           <button id="playOnline" class="hud-button">Play Online (Friend)</button>
+          <button id="playTutorial" class="hud-button">Tutorial</button>
         </div>
         <div id="aiControls" style="display:none; margin-top:12px">
           <div class="mp-grid">
@@ -193,6 +194,12 @@
           <summary>Online Multiplayer</summary>
           <p class="hint">Create or join a room to play with a friend. Copy and share the invite link.</p>
         </details>
+      </div>
+    </div>
+    <!-- Tutorial overlay -->
+    <div id="tutorialOverlay" class="tutorial-overlay" style="display:none">
+      <div class="tutorial-content panel">
+        <div id="tutorialText" class="hint" style="font-size:14px"></div>
       </div>
     </div>
     <script type="module" src="src/main.js"></script>
