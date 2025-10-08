@@ -55,22 +55,22 @@ export function makeFort(id, fortType, player, x, y) {
 
 // Simple abilities metadata for display only
 export const UNIT_ABILITIES = {
-  Infantry: ['Generalist'],
-  Tank: ['Armored'],
-  Artillery: ['Long Range'],
-  Engineer: ['Build Fortifications', 'Anti-Tank'],
-  Officer: ['Leadership'],
-  Medic: ['Field Medic'],
-  Scout: ['Recon'],
-  MechanizedInfantry: ['Transported'],
+  Infantry: ['Balanced frontline soldier'],
+  Tank: ['Heavy armor and firepower'],
+  Artillery: ['Long‑range fire (can’t attack adjacent)'],
+  Engineer: ['Build forts adjacent', 'Bonus vs Tanks'],
+  Officer: ['Leadership aura (+1 nearby)'],
+  Medic: ['Heals adjacent allies each turn'],
+  Scout: ['Extended sight and spotting for artillery'],
+  MechanizedInfantry: ['High mobility infantry'],
 };
 
 // Display-only fort abilities for tutorial/shop previews
 export const FORT_ABILITIES = {
-  Pillbox: ['Auto-fire'],
-  Bunker: ['Cover', 'Stacking'],
-  BarbedWire: ['Impedes Movement'],
-  SupplyDepot: ['Income +5/turn'],
+  Pillbox: ['Auto‑fires at nearby enemies'],
+  Bunker: ['Provides cover', 'Allows friendly unit on tile'],
+  BarbedWire: ['Blocks passage / slows advances'],
+  SupplyDepot: ['Generates +$5 income each turn'],
 };
 
 export function rankForXP(xp) {
