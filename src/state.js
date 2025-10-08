@@ -187,8 +187,7 @@ export class GameState {
       const fort = this.forts.find(f => f.x === x && f.y === y);
       if (fort && !(fort.type === 'Bunker' && fort.player === this.currentPlayer)) { if (DBG()) slog('trySpawnAt unit denied: fort blocks', { fort }); return false; }
       const { unitType } = this.spawnQueue;
-      const unit = makeUnit(id, unitType, this.currentPlayer, x, y);
-      this.units.push(unit);
+      const unit = makeUnit(id, unitType, this.currentPlayer, x, y); unit.moved = true; unit.acted = true; this.units.push(unit);
       this.money[this.currentPlayer] -= unitType.cost;
       this.rev++;
       created = unit;
@@ -652,3 +651,4 @@ export class GameState {
     };
   }
 }
+

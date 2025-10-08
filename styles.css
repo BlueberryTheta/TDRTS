@@ -136,11 +136,12 @@ details.accordion[open] > summary::after { content: '▾'; }
   #left { padding: 8px; }
   #right { padding: 8px 10px; }
   #gameCanvas { width: 100%; height: auto; border-width: 1px; }
-  #roomBanner { margin: 4px 8px; padding: 4px 6px; gap: 6px; border-radius: 8px; }
+  #roomBanner { background: transparent !important; border: 0 !important; box-shadow: none !important; padding: 4px 12px; margin: 4px 8px; gap: 6px; border-radius: 0; }
   #roomBanner .banner-left { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
   #roomBanner .hud-label { display: none; }
   #roomBanner .room-label { display: inline-block; font-size: 12px; color: var(--accent-khaki); }
-  #roomBanner .hud-pill { min-width: 22px; padding: 2px 6px; font-size: 12px; }
+  #roomBanner .room-label { display: inline-block; font-size: 12px; color: var(--accent-khaki); }
+  #roomBanner .hud-pill { background: transparent; border: 0; border-radius: 0; color: var(--text); padding: 0 6px; font-weight: 600; }
   #roomBanner #roomCode { flex: 1 1 auto; text-align: center; }
   #roomBanner .hud-button { padding: 4px 8px; font-size: 12px; }
   #roomBanner .hud-spacer { display: block; }
@@ -219,5 +220,6 @@ details.accordion[open] > summary::after { content: '▾'; }
 
 
 /* Override banner to use dark background consistently */
-#roomBanner { background: #0d1117 !important; border-color: var(--line) !important; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02), 0 10px 24px rgba(0,0,0,0.35); }
+#roomBanner { background: transparent !important; border: 0 !important; box-shadow: none !important; padding: 4px 12px; margin: 4px 8px; gap: 6px; border-radius: 0; }
+
 
