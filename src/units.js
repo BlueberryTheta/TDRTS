@@ -65,6 +65,14 @@ export const UNIT_ABILITIES = {
   MechanizedInfantry: ['Transported'],
 };
 
+// Display-only fort abilities for tutorial/shop previews
+export const FORT_ABILITIES = {
+  Pillbox: ['Auto-fire'],
+  Bunker: ['Cover', 'Stacking'],
+  BarbedWire: ['Impedes Movement'],
+  SupplyDepot: ['Income +5/turn'],
+};
+
 export function rankForXP(xp) {
   const lvl = xp >= 6 ? 2 : xp >= 3 ? 1 : 0;
   const label = lvl === 2 ? 'Sergeant' : lvl === 1 ? 'Corporal' : 'Private';

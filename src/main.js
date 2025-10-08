@@ -1,7 +1,7 @@
 import { GameState } from './state.js';
 import { Renderer } from './render.js';
 import { attachInput } from './input.js';
-import { UNIT_TYPES, FORT_TYPES, UNIT_ABILITIES, rankForXP } from './units.js';
+import { UNIT_TYPES, FORT_TYPES, UNIT_ABILITIES, FORT_ABILITIES, rankForXP } from './units.js';
 import { AssetStore } from './assets.js';
 import { runAiTurn } from './ai.js';
 
@@ -214,10 +214,12 @@ function buildFortPreviewHtml(key) {
   lines.push(`<div class="row"><span>ATK</span><span>${atk}</span></div>`);
   lines.push(`<div class="row"><span>RANGE</span><span>${rng}</span></div>`);
   if (typeof ft.income === 'number') lines.push(`<div class="row"><span>Income</span><span>+$${ft.income}/turn</span></div>`);
+  const abil = (typeof FORT_ABILITIES !== 'undefined' && FORT_ABILITIES[key]) ? FORT_ABILITIES[key].map(a => `<span class="ability">${a}</span>`).join('') : '';
   return `
     <span class="close" id="shopPrevClose">×</span>
     <h3>${ft.name} <span class="hint" style="font-weight:normal">$${ft.cost}</span></h3>
     ${lines.join('')}
+    <div class="abilities" style="margin-top:6px">${abil || '<span class="hint">No special abilities</span>'}</div>
     <div class="hint" style="margin-top:6px">Place near your base (highlighted tiles).</div>
   `;
 }
@@ -553,12 +555,14 @@ function buildFortsTableHtml() {
     // Find image from main.js mapping if present
     const img = (typeof FORT_TO_FILE !== 'undefined' && FORT_TO_FILE[k]) ? FORT_TO_FILE[k] : '';
     const title = prettyName(f.name);
+    const abil = (typeof FORT_ABILITIES !== 'undefined' && FORT_ABILITIES[k]) ? FORT_ABILITIES[k].map(a => `<span class="ability">${a}</span>`).join('') : '';
     return `
       <div class="tu-row">
         ${img ? `<img class="tu-thumb" src="${img}" alt="${f.name}" />` : `<div class="tu-thumb"></div>`}
         <div class="tu-body">
           <div class="tu-name">${title} <span class="hint" style="font-weight:normal">$${f.cost}</span></div>
           <div class="tu-stats">${parts.join('')}</div>
+          <div class="tu-abil">${abil || '<span class="hint">No special abilities</span>'}</div>
         </div>
       </div>
     `;
@@ -1194,3 +1198,5 @@ try {
     if (e.key === 'Escape') hideShopPreview();
   });
 } catch {}
+
+

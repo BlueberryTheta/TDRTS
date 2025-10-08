@@ -151,35 +151,34 @@ export function attachInput(canvas, tileSize, game, hooks) {
     }
   };
 
-  let holdTimer = null;
-  let holdFired = false;
-  let startXY = null;
-  const HOLD_MS = 500;
+  // Double-click (mouse) and double-tap (touch) to show deployed entity preview
+  let lastTapTime = 0;
 
-  const onClick = (e) => { if (!holdFired) onPoint(e.clientX, e.clientY); };
+  const onClick = (e) => { onPoint(e.clientX, e.clientY); };
   const onPointerDown = (e) => {
-    const cx = e.clientX, cy = e.clientY;
-    holdFired = false; startXY = { cx, cy };
-    // Start long-press timer for any pointer
-    try { clearTimeout(holdTimer); } catch {}
-    holdTimer = setTimeout(() => {
-      const { x, y } = computeTile(cx, cy);
-      try { if (typeof window !== 'undefined' && window.SHOW_DEPLOYED_PREVIEW) window.SHOW_DEPLOYED_PREVIEW(x, y, cx, cy); } catch {}
-      holdFired = true;
-    }, HOLD_MS);
-    // For touch/pen, also trigger normal point immediately
     if (e.pointerType === 'touch' || e.pointerType === 'pen') {
+      const now = Date.now();
+      // Double-tap within 300ms
+      if (now - lastTapTime < 300) {
+        e.preventDefault();
+        const { x, y } = computeTile(e.clientX, e.clientY);
+        try { if (typeof window !== 'undefined' && window.SHOW_DEPLOYED_PREVIEW) window.SHOW_DEPLOYED_PREVIEW(x, y, e.clientX, e.clientY); } catch {}
+        lastTapTime = 0;
+        return;
+      }
+      lastTapTime = now;
       e.preventDefault();
-      onPoint(cx, cy);
+      onPoint(e.clientX, e.clientY);
     }
   };
-  const onPointerUp = () => { try { clearTimeout(holdTimer); } catch {}; };
-  const onPointerCancel = () => { try { clearTimeout(holdTimer); } catch {}; };
+  const onDblClick = (e) => {
+    const { x, y } = computeTile(e.clientX, e.clientY);
+    try { if (typeof window !== 'undefined' && window.SHOW_DEPLOYED_PREVIEW) window.SHOW_DEPLOYED_PREVIEW(x, y, e.clientX, e.clientY); } catch {}
+  };
 
   canvas.addEventListener('click', onClick);
   canvas.addEventListener('pointerdown', onPointerDown, { passive: false });
-  canvas.addEventListener('pointerup', onPointerUp, { passive: true });
-  canvas.addEventListener('pointercancel', onPointerCancel, { passive: true });
+  canvas.addEventListener('dblclick', onDblClick);
 
-  canvas[HANDLERS_KEY] = { click: onClick, pointerdown: onPointerDown, pointerup: onPointerUp, pointercancel: onPointerCancel };
+  canvas[HANDLERS_KEY] = { click: onClick, pointerdown: onPointerDown, dblclick: onDblClick };
 }
