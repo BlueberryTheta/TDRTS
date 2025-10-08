@@ -244,12 +244,14 @@ function buildDeployedPreviewHtml(entity) {
   if (!entity) return '<div class="hint">Unknown</div>';
   if (entity.fort) {
     const atk = entity.atk ?? 0; const rng = entity.range ?? 0;
+    const canDemo = (typeof game !== 'undefined') ? (entity.player === game.currentPlayer) : false;
     return `
       <span class="close" id="shopPrevClose">×</span>
       <h3>${entity.type}</h3>
       <div class="row"><span>HP</span><span>${Math.max(0, entity.hp)}/${entity.maxHp ?? entity.hp}</span></div>
       <div class="row"><span>ATK</span><span>${atk}</span></div>
       <div class="row"><span>RANGE</span><span>${rng}</span></div>
+      ${canDemo ? `<div class="row" style="margin-top:6px; justify-content:flex-end"><button class="hud-button" id="destroyFortBtn" data-fid="${entity.id}">Demolish</button></div>` : ''}
     `;
   }
   const abil = (UNIT_ABILITIES[entity.type] || []).map(a => `<span class="ability">${a}</span>`).join('');
@@ -282,6 +284,26 @@ function showDeployedPreviewAt(x, y, clientX, clientY) {
   box.style.left = `${left}px`;
   box.style.top = `${top}px`;
   const close = document.getElementById('shopPrevClose'); if (close) close.onclick = () => hideShopPreview();
+  // Wire demolish button if present
+  const demo = document.getElementById('destroyFortBtn');
+  if (demo) {
+    demo.onclick = () => {
+      const fidAttr = demo.getAttribute('data-fid');
+      const fid = fidAttr ? Number(fidAttr) : NaN;
+      if (!Number.isFinite(fid)) { hideShopPreview(); return; }
+      const ok = typeof game.destroyFortById === 'function' ? game.destroyFortById(fid) : false;
+      if (ok) {
+        hideShopPreview();
+        // Sync in MP
+        try {
+          if (typeof mpClient !== 'undefined' && mpClient) {
+            if (typeof mpClient.sync === 'function') mpClient.sync(buildSnapshot());
+            else if (typeof mpClient.snapshot === 'function') { if (typeof mpClient.player === 'number' && mpClient.player === 0) mpClient.snapshot(buildSnapshot()); }
+          }
+        } catch {}
+      }
+    };
+  }
 }
 try { window.SHOW_DEPLOYED_PREVIEW = (x,y,cx,cy) => { try { showDeployedPreviewAt(x,y,cx,cy); } catch {} }; } catch {}
 
@@ -837,6 +859,9 @@ function applyActionLocal(action, byPlayer, isRemote=false) {
     }
     case 'attack': {
       const { attackerId, x, y } = action; const a = game.getUnitById(attackerId); const enemy = game.getEnemyAt(x, y) || game.getFortAt(x, y); if (!a || !enemy) return; game.currentPlayer = byPlayer; game.attack(a, enemy); break;
+    }
+    case 'destroyFort': {
+      const { fortId } = action; if (typeof game.destroyFortById === 'function') { game.currentPlayer = byPlayer; game.destroyFortById(fortId); } break;
     }
     case 'endTurn': {
       // Allow server to be source of truth for currentPlayer if provided

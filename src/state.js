@@ -249,6 +249,17 @@ export class GameState {
     return true;
   }
 
+  // Destroy own fortification by id (current player's turn)
+  destroyFortById(fortId) {
+    const idx = this.forts.findIndex(f => f.id === fortId);
+    if (idx < 0) return false;
+    const fort = this.forts[idx];
+    if (fort.player !== this.currentPlayer) return false;
+    this.forts.splice(idx, 1);
+    this.rev++;
+    return true;
+  }
+
   endTurn() {
     if (this.isGameOver) return; // no-op when game ended
     if (DBG()) slog('endTurn begin', { turn: this.turn, currentPlayer: this.currentPlayer, money: this.money.slice ? this.money.slice() : this.money });
@@ -480,6 +491,13 @@ export class GameState {
         if (fi >= 0) this.forts.splice(fi, 1); this.rev++;
         if (DBG()) slog('fort destroyed', { id: target.id, type: target.type, x: target.x, y: target.y });
       } else {
+        // Award bounty: half of unit cost to the attacker player
+        try {
+          const defType = (typeof target.type === 'string') ? target.type : null;
+          const meta = defType && UNIT_TYPES[defType];
+          const bounty = meta && typeof meta.cost === 'number' ? Math.floor(meta.cost / 2) : 0;
+          if (bounty > 0 && Array.isArray(this.money)) this.money[attacker.player] += bounty;
+        } catch {}
         const idx = this.units.findIndex(u => u.id === target.id);
         if (idx >= 0) this.units.splice(idx, 1); this.rev++;
         if (DBG()) slog('unit destroyed', { id: target.id, type: target.type, x: target.x, y: target.y });
@@ -505,6 +523,13 @@ export class GameState {
             if (attEnemyFlag.carriedBy === attacker.id) {
               this.dropFlagAt(attacker, attacker.x, attacker.y);
             }
+            // Award bounty to defender for destroying attacker
+            try {
+              const attType = (typeof attacker.type === 'string') ? attacker.type : null;
+              const metaA = attType && UNIT_TYPES[attType];
+              const bountyA = metaA && typeof metaA.cost === 'number' ? Math.floor(metaA.cost / 2) : 0;
+              if (bountyA > 0 && Array.isArray(this.money)) this.money[target.player] += bountyA;
+            } catch {}
             const ai = this.units.findIndex(u => u.id === attacker.id);
             if (ai >= 0) this.units.splice(ai, 1); this.rev++;
             if (DBG()) slog('attacker destroyed by counter', { id: attacker.id });
