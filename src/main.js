@@ -486,6 +486,21 @@ function buildTutorialContentHtml() {
   lines.push('<p>Capture the enemy flag from their base and bring it back to your base. The game is turn-based: Player 1 goes first.</p>');
   lines.push('<h3>Turn Flow</h3>');
   lines.push('<ul><li>At the start of your turn, you gain $10 plus +$5 per Supply Depot you own.</li><li>Buy and place units/forts near your base (highlighted tiles).</li><li>Move and attack with your units. Each unit can move and attack once per turn (artillery cannot attack adjacent).</li><li>End your turn. Forts like Pillboxes may auto-fire.</li></ul>');
+  lines.push('<h3>Tile Highlights</h3>');
+  lines.push('<ul>');
+  lines.push('<li><strong>Spawn Tiles</strong> (purple): When a shop item is selected, purple tiles around your base show valid placement. Units may also stack on a friendly Bunker tile.</li>');
+  lines.push('<li><strong>Engineer Build Tiles</strong> (green): Select an Engineer, choose a fort, then green tiles show where it can build (adjacent).</li>');
+  lines.push('<li><strong>Move Range</strong> (blue): Selecting a deployed unit shows where it can move this turn.</li>');
+  lines.push('<li><strong>Attack Range</strong> (red): Selecting a deployed unit shows tiles it can attack. Artillery cannot attack adjacent targets.</li>');
+  lines.push('<li><strong>Spotted Artillery Tiles</strong> (gold): With a friendly Scout spotting, Artillery can fire beyond its base range at gold-highlighted tiles.</li>');
+  lines.push('</ul>');
+  lines.push('<h3>Flags</h3>');
+  lines.push('<ul>');
+  lines.push('<li>Moving onto the enemy flag picks it up. The flag moves with that unit.</li>');
+  lines.push('<li>Bring the enemy flag back to your base to win.</li>');
+  lines.push('<li>If a flag carrier is destroyed, the flag drops on that tile.</li>');
+  lines.push('<li>Your own flag can be picked up by your units only if it has been moved from the base.</li>');
+  lines.push('</ul>');
   lines.push('<h3>Fog of War</h3>');
   lines.push('<p>You only see tiles within friendly sight. Scouts extend vision and allow Artillery to fire beyond its base range at spotted tiles.</p>');
   lines.push('<h3>Units</h3>');
@@ -504,11 +519,12 @@ function buildUnitsTableHtml() {
     const abilList = (UNIT_ABILITIES[k] || []);
     const abil = abilList.length ? abilList.map(a => `<span class="ability">${a}</span>`).join('') : '<span class="hint">No special abilities</span>';
     const img = (typeof UNIT_TO_FILE !== 'undefined' && UNIT_TO_FILE[k]) ? UNIT_TO_FILE[k] : '';
+    const title = prettyName(u.name);
     return `
       <div class="tu-row">
         ${img ? `<img class="tu-thumb" src="${img}" alt="${u.name}" />` : `<div class="tu-thumb"></div>`}
         <div class="tu-body">
-          <div class="tu-name">${u.name} <span class="hint" style="font-weight:normal">$${u.cost}</span></div>
+          <div class="tu-name">${title} <span class="hint" style="font-weight:normal">$${u.cost}</span></div>
           <div class="tu-stats">
             <span class="pair"><span>HP</span><span>${u.hp}</span></span>
             <span class="pair"><span>ATK</span><span>${u.atk}</span></span>
@@ -536,17 +552,27 @@ function buildFortsTableHtml() {
     if (typeof f.income === 'number') parts.push(`<span class=\"pair\"><span>Income</span><span>+$${f.income}/turn</span></span>`);
     // Find image from main.js mapping if present
     const img = (typeof FORT_TO_FILE !== 'undefined' && FORT_TO_FILE[k]) ? FORT_TO_FILE[k] : '';
+    const title = prettyName(f.name);
     return `
       <div class="tu-row">
         ${img ? `<img class="tu-thumb" src="${img}" alt="${f.name}" />` : `<div class="tu-thumb"></div>`}
         <div class="tu-body">
-          <div class="tu-name">${f.name} <span class="hint" style="font-weight:normal">$${f.cost}</span></div>
+          <div class="tu-name">${title} <span class="hint" style="font-weight:normal">$${f.cost}</span></div>
           <div class="tu-stats">${parts.join('')}</div>
         </div>
       </div>
     `;
   });
   return `<div class="tutorial-list">${rows.join('')}</div>`;
+}
+
+// Display-only prettifier: insert spaces in CamelCase identifiers without changing internal names
+function prettyName(name) {
+  if (!name || typeof name !== 'string') return name;
+  // Specific known cases
+  const map = { MechanizedInfantry: 'Mechanized Infantry', BarbedWire: 'Barbed Wire', SupplyDepot: 'Supply Depot' };
+  if (map[name]) return map[name];
+  return name.replace(/([a-z])([A-Z])/g, '$1 $2');
 }
 
 function updateUI() {
