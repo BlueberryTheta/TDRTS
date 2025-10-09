@@ -1,4 +1,4 @@
-import { UNIT_TYPES, FORT_TYPES } from './units.js';
+import { UNIT_TYPES } from './units.js';
 
 // Basic heuristic AI for Player 2 (index 1)
 // - Buys a unit if it has money, prefers Tank > Artillery > Infantry
@@ -37,9 +37,6 @@ export async function runAiTurn(game, difficulty = 'medium') {
   const delayShort = diff === 'hard' ? 80 : diff === 'easy' ? 220 : 150;
   const delayLong = diff === 'hard' ? 120 : diff === 'easy' ? 300 : 200;
 
-  // 0) Economy/build logic (simple): early Supply Depot; Pillbox when pressured
-  maybeEconomyActions(game, diff);
-
   // 1) Buy and spawn if possible (diff-dependent)
   const choice = pickPurchase(game, diff);
   if (choice) {
@@ -52,20 +49,12 @@ export async function runAiTurn(game, difficulty = 'medium') {
 
   // 2) For each AI unit: attack/move based on difficulty
   const enemyBase = game.bases[0];
-  const threatMap = computeThreatMap(game, 1);
   const aiUnits = game.units.filter((u) => u.player === 1);
   for (const u of aiUnits) {
     if (game.isGameOver) break;
     if (game.currentPlayer !== 1) break;
-    // Detect if this unit is carrying any flag (enemy or own)
-    let carrying = false;
-    try {
-      const ef = game.flags[(u.player + 1) % 2];
-      const mf = game.flags[u.player];
-      carrying = (ef && ef.carriedBy === u.id) || (mf && mf.carriedBy === u.id);
-    } catch {}
     // Attack first if in range (hard/medium); easy: 60% chance to try attack first
-    const tryFirst = carrying ? false : (diff === 'easy' ? (Math.random() < 0.6) : true);
+    const tryFirst = diff === 'easy' ? (Math.random() < 0.6) : true;
     if (tryFirst && !u.acted && tryAttackSmart(game, u, diff)) {
       await sleep(delayShort);
       continue;
@@ -73,14 +62,14 @@ export async function runAiTurn(game, difficulty = 'medium') {
     // Move toward a target
     if (!u.moved) {
       const target = pickMoveTarget(game, u, diff, enemyBase);
-      const step = bestMoveToward(game, u, target, diff, { threatMap });
+      const step = bestMoveToward(game, u, target, diff);
       if (step) {
         game.moveUnitTo(u, step.x, step.y);
         game.checkFlagCapture(u);
       }
     }
-    // Try attack after moving (skip if carrying to prioritize returning)
-    if (!carrying && !u.acted) tryAttackSmart(game, u, diff);
+    // Try attack after moving
+    if (!u.acted) tryAttackSmart(game, u, diff);
     await sleep(delayShort);
   }
 
@@ -130,15 +119,6 @@ function pickSpawnTile(game, diff='medium') {
 }
 
 function pickMoveTarget(game, unit, diff, enemyBase) {
-  // If carrying any flag (enemy or own), head to our base to score/return
-  try {
-    const myBase = game.bases[unit.player];
-    const enemyFlag = game.flags[(unit.player + 1) % 2];
-    const myFlag = game.flags[unit.player];
-    const carryingEnemy = enemyFlag && enemyFlag.carriedBy === unit.id;
-    const carryingOwn = myFlag && myFlag.carriedBy === unit.id;
-    if (carryingEnemy || carryingOwn) return { x: myBase.x, y: myBase.y };
-  } catch {}
   // hard: prefer nearest enemy unit; medium: enemy base; easy: jittered toward base
   if (diff === 'hard') {
     let best = null, bestD = 1e9;
@@ -156,24 +136,20 @@ function pickMoveTarget(game, unit, diff, enemyBase) {
   return enemyBase;
 }
 
-function bestMoveToward(game, unit, target, diff='medium', { threatMap } = {}) {
+function bestMoveToward(game, unit, target, diff='medium') {
   const movesSet = game.getMoveRange(unit);
   const moves = Array.from(movesSet).map(k => k.split(',').map(Number));
   if (moves.length === 0) return null;
   // Exclude tiles with enemies/forts
   const filtered = moves.filter(([x,y]) => !game.getEnemyAt(x,y) && !game.getFortAt(x,y));
   if (!filtered.length) return null;
-  // Easy: distance-first with slight randomness
+  filtered.sort((a, b) => distance(a[0], a[1], target.x, target.y) - distance(b[0], b[1], target.x, target.y));
   if (diff === 'easy') {
-    filtered.sort((a, b) => distance(a[0], a[1], target.x, target.y) - distance(b[0], b[1], target.x, target.y));
     // pick from top 3 with randomness
     const k = Math.min(2, filtered.length - 1);
     return { x: filtered[k][0], y: filtered[k][1] };
   }
-  // Medium/Hard: score tiles using threat map, cover, and ally proximity
-  const scored = filtered.map(([x,y]) => ({ x, y, score: scoreTile(game, unit, x, y, target, threatMap, diff) }));
-  scored.sort((a, b) => b.score - a.score);
-  return { x: scored[0].x, y: scored[0].y };
+  return { x: filtered[0][0], y: filtered[0][1] };
 }
 
 function tryAttackSmart(game, unit, diff='medium') {
@@ -205,118 +181,4 @@ function tryAttackSmart(game, unit, diff='medium') {
 }
 
 
-// --- Threat-aware helpers ---
-function computeThreatMap(game, forPlayer = 1) {
-  const set = new Set();
-  for (const u of game.units) {
-    if (u.player === forPlayer) continue;
-    try {
-      for (const key of game.getAttackableTiles(u)) set.add(key);
-    } catch {}
-  }
-  // Include Pillbox fort threat (Chebyshev range)
-  for (const f of game.forts) {
-    if (f.player === forPlayer) continue;
-    if (f.type !== 'Pillbox') continue;
-    const range = f.range ?? 2;
-    for (let dx = -range; dx <= range; dx++) {
-      for (let dy = -range; dy <= range; dy++) {
-        const x = f.x + dx, y = f.y + dy;
-        if (!game.isInside(x, y)) continue;
-        if (Math.max(Math.abs(dx), Math.abs(dy)) <= range && (dx !== 0 || dy !== 0)) set.add(`${x},${y}`);
-      }
-    }
-  }
-  return set;
-}
 
-function scoreTile(game, unit, x, y, target, threatMap, diff) {
-  // Higher score is better
-  let score = 0;
-  // Approach objective
-  const d = distance(x, y, target.x, target.y);
-  score += 50 - d; // strong pull to target
-  // Threat penalty
-  const threatened = threatMap && threatMap.has(`${x},${y}`);
-  const threatPenalty = diff === 'hard' ? 18 : 10;
-  if (threatened) score -= threatPenalty;
-  // Cover bonus: friendly bunker
-  if (game.isFriendlyBunkerAt(x, y, unit.player)) score += 6;
-  // Officer aura bonus (if near after moving)
-  try { if (game.hasFriendlyOfficerNearby({ ...unit, x, y })) score += 3; } catch {}
-  // Ally proximity bonus (prefer grouping lightly)
-  let allies = 0;
-  for (const a of game.units) {
-    if (a.player !== unit.player || a.id === unit.id) continue;
-    const cheb = Math.max(Math.abs(a.x - x), Math.abs(a.y - y));
-    if (cheb <= 2) allies++;
-  }
-  score += Math.min(2, allies); // up to +2
-  // Slight preference to keep current tile if already good
-  if (unit.x === x && unit.y === y) score += 1;
-  return score;
-}
-
-// --- Simple economy/build logic ---
-function maybeEconomyActions(game, diff='medium') {
-  if (game.currentPlayer !== 1) return;
-  const money = game.money[1] || 0;
-  const base = game.bases[1];
-
-  // Early Supply Depot (once), prefer first 6 turns
-  const hasDepot = game.forts.some(f => f.player === 1 && f.type === 'SupplyDepot');
-  if (!hasDepot && game.turn <= 6 && money >= (FORT_TYPES.SupplyDepot.cost || 150)) {
-    try {
-      game.queueFort(FORT_TYPES.SupplyDepot);
-      const tile = pickSpawnTileFacingEnemy(game) || pickSpawnTile(game, diff);
-      if (tile) game.trySpawnAt(tile.x, tile.y);
-      return; // only one economy action per turn
-    } catch {}
-  }
-
-  // Pillbox when pressured near base (distance <= 4) and none adjacent to base
-  const pressured = isUnderPressure(game, 1, 4);
-  const hasPillNearBase = game.forts.some(f => f.player === 1 && f.type === 'Pillbox' && Math.max(Math.abs(f.x - base.x), Math.abs(f.y - base.y)) <= 1);
-  if (pressured && !hasPillNearBase && money >= (FORT_TYPES.Pillbox.cost || 80)) {
-    try {
-      game.queueFort(FORT_TYPES.Pillbox);
-      const tile = pickSpawnTileFacingEnemy(game) || pickSpawnTile(game, diff);
-      if (tile) game.trySpawnAt(tile.x, tile.y);
-    } catch {}
-  }
-}
-
-function isUnderPressure(game, player = 1, radius = 4) {
-  const base = game.bases[player];
-  for (const u of game.units) {
-    if (u.player === player) continue;
-    const cheb = Math.max(Math.abs(u.x - base.x), Math.abs(u.y - base.y));
-    if (cheb <= radius) return true;
-  }
-  return false;
-}
-
-function pickSpawnTileFacingEnemy(game) {
-  const base = game.bases[1];
-  const candidates = [
-    { x: base.x, y: base.y },
-    { x: base.x + 1, y: base.y },
-    { x: base.x - 1, y: base.y },
-    { x: base.x, y: base.y + 1 },
-    { x: base.x, y: base.y - 1 },
-  ];
-  const valids = candidates.filter(t => game.canSpawnAt(t.x, t.y));
-  if (!valids.length) return null;
-  // Prefer tile closer to nearest enemy to face pressure
-  const nearestEnemyDist = (x, y) => {
-    let best = 1e9;
-    for (const u of game.units) {
-      if (u.player !== 0) continue;
-      const d = Math.max(Math.abs(u.x - x), Math.abs(u.y - y));
-      if (d < best) best = d;
-    }
-    return best;
-  };
-  valids.sort((a, b) => nearestEnemyDist(a.x, a.y) - nearestEnemyDist(b.x, b.y));
-  return valids[0];
-}
