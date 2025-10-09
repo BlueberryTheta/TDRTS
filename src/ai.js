@@ -139,6 +139,22 @@ function pickMoveTarget(game, unit, diff, enemyBase) {
     const carryingOwn = myFlag && myFlag.carriedBy === unit.id;
     if (carryingEnemy || carryingOwn) return { x: myBase.x, y: myBase.y };
   } catch {}
+
+  // If our flag is being carried by enemy, try to intercept (hard/medium)
+  try {
+    const myFlag = game.flags[unit.player];
+    if (myFlag && myFlag.carriedBy != null && diff !== 'easy') {
+      const carrier = game.getUnitById(myFlag.carriedBy);
+      if (carrier) return { x: carrier.x, y: carrier.y };
+    }
+  } catch {}
+
+  // Default objective: head toward enemy flag position (or base if at base)
+  try {
+    const enemyFlag = game.flags[(unit.player + 1) % 2];
+    if (enemyFlag && enemyFlag.carriedBy == null) return { x: enemyFlag.x, y: enemyFlag.y };
+  } catch {}
+
   // hard: prefer nearest enemy unit; medium: enemy base; easy: jittered toward base
   if (diff === 'hard') {
     let best = null, bestD = 1e9;
@@ -207,11 +223,13 @@ function tryAttackSmart(game, unit, diff='medium') {
 
 // --- Threat-aware helpers ---
 function computeThreatMap(game, forPlayer = 1) {
-  const set = new Set();
+  // Map of tile key -> number of distinct enemy threats that can hit this tile
+  const map = new Map();
+  const add = (k) => map.set(k, (map.get(k) || 0) + 1);
   for (const u of game.units) {
     if (u.player === forPlayer) continue;
     try {
-      for (const key of game.getAttackableTiles(u)) set.add(key);
+      for (const key of game.getAttackableTiles(u)) add(key);
     } catch {}
   }
   // Include Pillbox fort threat (Chebyshev range)
@@ -223,27 +241,55 @@ function computeThreatMap(game, forPlayer = 1) {
       for (let dy = -range; dy <= range; dy++) {
         const x = f.x + dx, y = f.y + dy;
         if (!game.isInside(x, y)) continue;
-        if (Math.max(Math.abs(dx), Math.abs(dy)) <= range && (dx !== 0 || dy !== 0)) set.add(`${x},${y}`);
+        const cheb = Math.max(Math.abs(dx), Math.abs(dy));
+        if (cheb > 0 && cheb <= range) add(`${x},${y}`);
       }
     }
   }
-  return set;
+  return map;
 }
 
 function scoreTile(game, unit, x, y, target, threatMap, diff) {
   // Higher score is better
   let score = 0;
-  // Approach objective
-  const d = distance(x, y, target.x, target.y);
-  score += 50 - d; // strong pull to target
-  // Threat penalty
-  const threatened = threatMap && threatMap.has(`${x},${y}`);
-  const threatPenalty = diff === 'hard' ? 18 : 10;
-  if (threatened) score -= threatPenalty;
+  // Approach objective strongly; reward progress relative to current tile
+  const dNew = distance(x, y, target.x, target.y);
+  const dCur = distance(unit.x, unit.y, target.x, target.y);
+  // Base pull to objective (stronger than before)
+  score += 80 - (2 * dNew);
+  // Reward moving closer, penalize moving away
+  score += (dCur - dNew) * 6; // +6 per step closer, -6 per step away
+
+  // Threat penalty scaled by number of threats; reduced for Tanks and on Bunkers
+  const key = `${x},${y}`;
+  const threatCount = threatMap ? (threatMap.get(key) || 0) : 0;
+  if (threatCount > 0) {
+    const typeFactor = unit.type === 'Tank' ? 0.6 : 1.0;
+    const bunker = game.isFriendlyBunkerAt(x, y, unit.player);
+    const basePenalty = (diff === 'hard' ? 6 : 4) * typeFactor * (bunker ? 0.5 : 1);
+    const penalty = Math.min( (diff === 'hard' ? 18 : 12), basePenalty * threatCount);
+    score -= penalty;
+  }
+
   // Cover bonus: friendly bunker
-  if (game.isFriendlyBunkerAt(x, y, unit.player)) score += 6;
+  if (game.isFriendlyBunkerAt(x, y, unit.player)) score += 8;
+
   // Officer aura bonus (if near after moving)
   try { if (game.hasFriendlyOfficerNearby({ ...unit, x, y })) score += 3; } catch {}
+
+  // Opportunity to attack after moving (approximate by range/chebyshev)
+  try {
+    const range = unit.range || 1;
+    const minRange = unit.type === 'Artillery' ? 2 : 1;
+    let canThreaten = false;
+    for (const e of game.units) {
+      if (e.player === unit.player) continue;
+      const cheb = Math.max(Math.abs(e.x - x), Math.abs(e.y - y));
+      if (cheb >= minRange && cheb <= range) { canThreaten = true; break; }
+    }
+    if (canThreaten) score += (diff === 'hard' ? 8 : 5);
+  } catch {}
+
   // Ally proximity bonus (prefer grouping lightly)
   let allies = 0;
   for (const a of game.units) {
@@ -252,8 +298,17 @@ function scoreTile(game, unit, x, y, target, threatMap, diff) {
     if (cheb <= 2) allies++;
   }
   score += Math.min(2, allies); // up to +2
-  // Slight preference to keep current tile if already good
-  if (unit.x === x && unit.y === y) score += 1;
+
+  // Big bonus for stepping onto own base while carrying a flag (handled by target too)
+  try {
+    const myBase = game.bases[unit.player];
+    const ef = game.flags[(unit.player + 1) % 2];
+    const mf = game.flags[unit.player];
+    if ((ef && ef.carriedBy === unit.id) || (mf && mf.carriedBy === unit.id)) {
+      if (x === myBase.x && y === myBase.y) score += 100;
+    }
+  } catch {}
+
   return score;
 }
 

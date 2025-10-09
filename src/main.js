@@ -776,10 +776,20 @@ function showGameOver() {
   if (text) text.textContent = `Player ${String((game.winner ?? 0) + 1)} captured the flag!`;
   if (modal) modal.style.display = 'flex';
   const btn = document.getElementById('newGameBtn');
-  if (btn) btn.onclick = () => {
-    // Simple reset: full reload
-    location.reload();
-  };
+  if (btn) {
+    btn.textContent = 'Return to Main Menu';
+    btn.onclick = () => {
+      // Hide game over modal
+      if (modal) modal.style.display = 'none';
+      // Show main menu modal and reset its sections
+      const modeModal = document.getElementById('modeModal');
+      if (modeModal) modeModal.style.display = 'flex';
+      const modeActions = document.querySelector('.mode-actions'); if (modeActions) modeActions.style.display = 'flex';
+      const aiControls = document.getElementById('aiControls'); if (aiControls) aiControls.style.display = 'none';
+      const mpCtrls = document.getElementById('mpControls'); if (mpCtrls) mpCtrls.style.display = 'none';
+      const backBtn = document.getElementById('modeBackBtn'); if (backBtn) backBtn.style.display = 'none';
+    };
+  }
 }
 
 // --- Multiplayer wiring ---
