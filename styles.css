@@ -110,6 +110,10 @@ li { margin: 4px 0; }
 .mode-actions .hud-button { min-width: 180px; text-align: center; }
 .mode-logo { display: flex; justify-content: center; align-items: center; margin: 4px 0 8px; }
 .mode-logo img { max-width: 200px; width: 40%; height: auto; filter: drop-shadow(0 6px 12px rgba(0,0,0,0.35)); }
+.legal-links { margin-top: 10px; font-size: 12px; color: var(--muted); display: flex; gap: 8px; justify-content: center; align-items: center; }
+.legal-links a { color: var(--muted); text-decoration: none; }
+.legal-links a:hover { text-decoration: underline; color: var(--text); }
+.legal-links .sep { color: rgba(255,255,255,0.25); }
 
 /* Center content inside the main menu modal */
 #modeModal .mp-grid { justify-items: center; }
