@@ -117,4 +117,4 @@ wss.on('connection', (ws) => {
   });
 });
 
-console.log(`TDRTS WebSocket server running on ws://localhost:${PORT}`);
+console.log(`FlagFalls WebSocket server running on ws://localhost:${PORT}`);

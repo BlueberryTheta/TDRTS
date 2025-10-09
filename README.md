@@ -1,4 +1,4 @@
-TDRTS – WW2 Capture-The-Flag (Prototype)
+FlagFalls – WW2 Capture-The-Flag (Prototype)
 
 Overview
 - Static, client-side prototype of a turn-based, top-down WW2-themed CTF strategy game.
@@ -38,4 +38,3 @@ Roadmap (Multiplayer)
   - Game room creation/join, ready-state, and per-turn state sync.
   - Deterministic turn resolution or server authority to prevent divergence.
   - Simple persistence for active rooms and rejoin.
-
