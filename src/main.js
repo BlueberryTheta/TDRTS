@@ -768,6 +768,17 @@ maybeRunAI();
 
 // --- Game Over Modal ---
 let gameOverShown = false;
+function resetGameState() {
+  // Reinitialize the existing game instance in place
+  const fresh = new GameState(GRID_W, GRID_H);
+  Object.assign(game, fresh);
+  try { game.selectedId = null; } catch {}
+  try { game.recomputeVisibility && game.recomputeVisibility(); } catch {}
+  // Clear any MP banner just in case and reset mode flags
+  try { const banner = document.getElementById('roomBanner'); if (banner) banner.style.display = 'none'; } catch {}
+  MODE = null;
+  gameOverShown = false;
+}
 function showGameOver() {
   gameOverShown = true;
   setUIEnabled(false);
@@ -781,6 +792,8 @@ function showGameOver() {
     btn.onclick = () => {
       // Hide game over modal
       if (modal) modal.style.display = 'none';
+      // Reset game to a fresh state
+      resetGameState();
       // Show main menu modal and reset its sections
       const modeModal = document.getElementById('modeModal');
       if (modeModal) modeModal.style.display = 'flex';
